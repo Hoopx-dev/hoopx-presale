@@ -2,12 +2,40 @@
 
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { useEffect, useRef } from 'react';
 import Header from '@/components/header';
 import { usePurchaseDetails } from '@/lib/purchase/hooks';
 
 export default function Home() {
   const t = useTranslations('home');
+  const router = useRouter();
+  const { connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
+  const shouldRedirect = useRef(false);
+
+  // Redirect to purchase page after wallet connects
+  useEffect(() => {
+    if (connected && shouldRedirect.current) {
+      router.push('/purchase');
+      shouldRedirect.current = false;
+    }
+  }, [connected, router]);
+
+  // Handle buy button click
+  const handleBuyClick = () => {
+    if (connected) {
+      // Already connected, go to purchase page
+      router.push('/purchase');
+    } else {
+      // Not connected, trigger wallet modal and set redirect flag
+      shouldRedirect.current = true;
+      setVisible(true);
+    }
+  };
 
   // Calculate min and max tiers
   const minTier = purchaseDetails?.tiers?.[0] || 1000;
@@ -69,7 +97,10 @@ export default function Home() {
           </div>
 
           {/* Buy Button */}
-          <button className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 font-bold text-xl py-5 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg mb-4 cursor-pointer">
+          <button
+            onClick={handleBuyClick}
+            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 font-bold text-xl py-5 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg mb-4 cursor-pointer"
+          >
             {t('buyNow')}
           </button>
 
