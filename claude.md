@@ -1,5 +1,10 @@
 # HOOPX Presale Project
 
+## Project Information
+- **Author**: Arius Lee
+- **Email**: web@hoopx.gg
+- **Repository**: hoopx-presale
+
 ## Overview
 HOOPX is a token presale platform built on the Solana blockchain. This project provides a mobile-optimized Web3 experience for users to purchase HOOPX tokens through Solana wallet apps.
 

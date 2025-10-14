@@ -7,6 +7,17 @@ import type { PurchaseDetailsVO, FetchSessionVO, RegisterPurchaseDTO } from './t
  */
 export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO> => {
   const { data } = await http.get('/api/purchase/details');
+
+  // Handle potential wrapper structure like { code: 200, data: {...} } or { success: true, data: {...} }
+  if (data && typeof data === 'object') {
+    // If response has a 'data' property, use that
+    if ('data' in data) {
+      return data.data;
+    }
+    // Otherwise return the data directly
+    return data;
+  }
+
   return data;
 };
 

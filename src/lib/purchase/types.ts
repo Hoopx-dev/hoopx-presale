@@ -1,5 +1,5 @@
 export interface PurchaseDetailsVO {
-  rate: number;
+  rate: number | string;
   activityId: string;
   cliff: string;
   vesting: string;
@@ -8,9 +8,10 @@ export interface PurchaseDetailsVO {
   startTime: string;
   endTime: string;
   timezone: string;
-  tokenTotal: number;
-  purchasedAmount: number;
-  tiers: number[];
+  tokenTotal: number | string;
+  purchasedAmount: number | string;
+  tiers?: number[] | string[]; // Optional as it might not be in response
+  tierList?: number[] | string[]; // Alternative field name
 }
 
 export interface FetchSessionVO {
