@@ -321,25 +321,251 @@ npm start      # Production server on http://localhost:3007
 hoopx-presale/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx           # Root layout with LocaleProvider
+│   │   ├── layout.tsx           # Root layout with Providers + LocaleProvider
 │   │   ├── page.tsx             # Home page (fully localized)
 │   │   ├── globals.css          # Global styles
 │   │   └── favicon.ico
 │   ├── components/
 │   │   ├── header.tsx           # Reusable header with language toggle
 │   │   ├── locale-provider.tsx  # Client-side i18n provider
-│   │   └── locale-switcher.tsx  # Language switcher dropdown
+│   │   ├── locale-switcher.tsx  # Language switcher dropdown
+│   │   ├── providers.tsx        # React Query provider
+│   │   └── purchase-details-debug.tsx  # Debug component for testing API
+│   ├── lib/
+│   │   ├── http.ts              # Axios client with interceptors
+│   │   ├── queryKeys.ts         # React Query key factory
+│   │   └── purchase/
+│   │       ├── types.ts         # TypeScript interfaces for API
+│   │       ├── api.ts           # API functions for all endpoints
+│   │       └── hooks.ts         # React Query hooks
+│   ├── store/
+│   │   └── purchase.ts          # Zustand store for local state
 │   └── i18n/
 │       ├── config.ts            # Locale types and configuration
 │       └── locales/
 │           ├── en.json          # English translations
 │           └── cn.json          # Chinese translations
 ├── public/                      # Static assets
+├── .env.local                   # Environment variables (API_BASE_URL)
 ├── package.json                 # Dependencies and scripts
 ├── tsconfig.json                # TypeScript config (paths: @/* → ./src/*)
 ├── next.config.ts               # Next.js configuration
 └── claude.md                    # This documentation file
 ```
+
+---
+
+## API Integration Architecture
+
+### Overview
+The project follows the mgp88-frontend structure with a clear separation of concerns for data fetching, state management, and API communication.
+
+### Technology Stack
+- **HTTP Client**: Axios with request/response interceptors
+- **Data Fetching**: @tanstack/react-query (React Query v5)
+- **State Management**: Zustand for local UI state
+- **TypeScript**: Strict typing for all API interfaces
+
+### File Organization
+
+#### 1. HTTP Client (`src/lib/http.ts`)
+```typescript
+import axios from 'axios';
+
+export const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://boot-api.hoopx.gg';
+export const http = axios.create({ baseURL: API_BASE });
+```
+
+**Features:**
+- Centralized Axios instance with base URL from environment variables
+- Request interceptor: Logs all outgoing requests in development mode (method, URL, data)
+- Response interceptor: Logs successful responses and detailed error information
+- Automatic error handling with formatted console output
+
+#### 2. Query Keys (`src/lib/queryKeys.ts`)
+```typescript
+export const QK = {
+  purchase: {
+    all: () => ['purchase'] as const,
+    details: () => [...QK.purchase.all(), 'details'] as const,
+    session: (publicKey?: string) =>
+      [...QK.purchase.all(), 'session', publicKey] as const,
+  },
+};
+```
+
+**Purpose:** Centralized query key management following React Query best practices
+
+#### 3. TypeScript Types (`src/lib/purchase/types.ts`)
+Defines interfaces matching the backend API documentation:
+- `PurchaseDetailsVO` - Activity configuration and purchase tiers
+- `FetchSessionVO` - User's purchase session data
+- `RegisterPurchaseDTO` - Request payload for registering purchases
+
+#### 4. API Functions (`src/lib/purchase/api.ts`)
+Pure functions for API calls:
+- `getPurchaseDetails()` - GET /api/purchase/details
+- `getPurchaseSession(publicKey)` - GET /api/purchase/session
+- `registerPurchase(dto)` - POST /api/purchase/register
+
+All functions use the centralized `http` client and return typed responses.
+
+#### 5. React Query Hooks (`src/lib/purchase/hooks.ts`)
+
+**`usePurchaseDetails(enabled?)`**
+- Fetches activity configuration and available tiers
+- Auto-refetches every 60 seconds to keep exchange rates fresh
+- Can be disabled with `enabled` parameter
+
+**`usePurchaseSession(publicKey?)`**
+- Fetches user's purchase history for specific wallet
+- Only runs when `publicKey` is provided
+- 30-second stale time for user-specific data
+
+**`useRegisterPurchase()`**
+- Mutation hook for registering new purchases
+- Automatically invalidates related queries on success
+- Returns updated session data after registration
+
+#### 6. Zustand Store (`src/store/purchase.ts`)
+```typescript
+interface PurchaseState {
+  selectedTier: number | null;
+  walletAddress: string | null;
+  setSelectedTier: (tier: number | null) => void;
+  setWalletAddress: (address: string | null) => void;
+  reset: () => void;
+}
+```
+
+**Purpose:** Local UI state for purchase flow (tier selection, wallet address)
+
+#### 7. React Query Provider (`src/components/providers.tsx`)
+```typescript
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
+```
+
+Wraps the entire app in layout.tsx:
+```tsx
+<Providers>
+  <LocaleProvider>{children}</LocaleProvider>
+</Providers>
+```
+
+### Usage Examples
+
+#### Fetching Purchase Details
+```tsx
+import { usePurchaseDetails } from '@/lib/purchase/hooks';
+
+export default function PurchasePage() {
+  const { data, isLoading, error } = usePurchaseDetails();
+
+  if (isLoading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+
+  return (
+    <div>
+      <p>Exchange Rate: {data.rate} USDT/HOOPX</p>
+      <p>Available Tiers: {data.tiers.join(', ')} USDT</p>
+    </div>
+  );
+}
+```
+
+#### Fetching User Session
+```tsx
+import { usePurchaseSession } from '@/lib/purchase/hooks';
+
+export default function UserPortfolio({ walletAddress }: { walletAddress: string }) {
+  const { data, isLoading } = usePurchaseSession(walletAddress);
+
+  if (!walletAddress) return <ConnectWalletPrompt />;
+  if (isLoading) return <LoadingSpinner />;
+
+  return (
+    <div>
+      <p>Purchased: {data.purchasedAmount} USDT</p>
+      <p>Status: {data.purchaseStatus === 1 ? 'Success' : 'Failed'}</p>
+    </div>
+  );
+}
+```
+
+#### Registering a Purchase
+```tsx
+import { useRegisterPurchase } from '@/lib/purchase/hooks';
+
+export default function PurchaseButton() {
+  const registerMutation = useRegisterPurchase();
+
+  const handlePurchase = async () => {
+    try {
+      const result = await registerMutation.mutateAsync({
+        publicKey: walletAddress,
+        amount: 1000,
+        trxId: transactionId,
+        activityId: activityId,
+      });
+      console.log('Purchase registered:', result);
+    } catch (error) {
+      console.error('Purchase failed:', error);
+    }
+  };
+
+  return (
+    <button onClick={handlePurchase} disabled={registerMutation.isPending}>
+      {registerMutation.isPending ? 'Processing...' : 'Confirm Purchase'}
+    </button>
+  );
+}
+```
+
+#### Using Zustand Store
+```tsx
+import { usePurchaseStore } from '@/store/purchase';
+
+export default function TierSelector() {
+  const { selectedTier, setSelectedTier } = usePurchaseStore();
+
+  return (
+    <div>
+      {[1000, 2000, 3000, 4000, 5000].map((tier) => (
+        <button
+          key={tier}
+          onClick={() => setSelectedTier(tier)}
+          className={selectedTier === tier ? 'selected' : ''}
+        >
+          {tier} USDT
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+### Data Flow
+1. **Page Load**: `usePurchaseDetails()` fetches activity config automatically
+2. **Wallet Connection**: Pass wallet address to `usePurchaseSession(publicKey)`
+3. **User Selection**: Store tier selection in Zustand (`setSelectedTier(1000)`)
+4. **Transaction**: User completes Solana transaction → get `trxId`
+5. **Registration**: Call `registerMutation.mutateAsync({ publicKey, amount, trxId, activityId })`
+6. **Auto-Refresh**: React Query automatically invalidates and refetches session + details
+
+### Environment Configuration
+Create `.env.local` in project root:
+```env
+NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
+```
+
+---
 
 ## Current Implementation Status
 
@@ -354,25 +580,58 @@ hoopx-presale/
 - [x] Project configured to run on port 3007
 - [x] Path aliases configured (@/* → ./src/*)
 - [x] Development documentation
+- [x] **API Integration Layer**
+  - [x] Axios HTTP client with interceptors (request/response logging)
+  - [x] React Query (@tanstack/react-query) setup with custom configuration
+  - [x] TypeScript interfaces for all API endpoints (types.ts)
+  - [x] API functions for all 3 endpoints (api.ts)
+  - [x] React Query hooks (usePurchaseDetails, usePurchaseSession, useRegisterPurchase)
+  - [x] Zustand store for local purchase state (selectedTier, walletAddress)
+  - [x] Query key factory (queryKeys.ts) for cache management
+  - [x] Environment configuration (.env.local with API_BASE_URL)
+  - [x] React Query provider wrapper in layout.tsx
+  - [x] Debug component for testing API integration (purchase-details-debug.tsx)
 
 ### 🚧 To Be Implemented
-- [ ] Solana wallet integration
+- [ ] Solana wallet integration (@solana/wallet-adapter-react)
 - [ ] Connect wallet functionality
-- [ ] Purchase flow UI
-- [ ] API integration with backend endpoints
+- [ ] Purchase flow UI with tier selection
 - [ ] Terms and conditions modal
-- [ ] Purchase amount selection
-- [ ] Transaction confirmation
+- [ ] Transaction confirmation flow
 - [ ] Portfolio/dashboard view
-- [ ] Jupiter Lock integration
+- [ ] Jupiter Lock integration for viewing locked tokens
 - [ ] Token claiming functionality
 - [ ] Mobile responsiveness optimization
-- [ ] Error handling and loading states
+- [ ] Enhanced error handling and loading states
+- [ ] Transaction status tracking and notifications
 
 ### 📝 Next Steps
-1. Implement Solana wallet connection (@solana/wallet-adapter-react)
-2. Create purchase modal with tier selection
-3. Integrate with backend API endpoints
-4. Add transaction status tracking
-5. Build portfolio/dashboard page
-6. Implement Jupiter Lock viewing functionality
+1. **Solana Wallet Integration**
+   - Install @solana/wallet-adapter packages
+   - Create WalletProvider component
+   - Add wallet connection button to header
+   - Implement wallet connection flow
+
+2. **Purchase Flow UI**
+   - Create purchase modal component
+   - Implement tier selection UI using usePurchaseDetails hook
+   - Add wallet connection check
+   - Show vesting/cliff period details
+   - Implement purchase confirmation
+
+3. **Transaction Processing**
+   - Integrate Solana transaction signing
+   - Handle transaction confirmation
+   - Call registerPurchase hook after successful blockchain transaction
+   - Show success/error notifications
+
+4. **Portfolio Dashboard**
+   - Create portfolio page
+   - Use usePurchaseSession hook to fetch user data
+   - Display purchase history and status
+   - Show vesting schedule and claimable amounts
+
+5. **Jupiter Lock Integration**
+   - Research Jupiter Lock API/SDK
+   - Implement lock viewing functionality
+   - Add claim button when cliff period ends

@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import Header from '@/components/header';
+import PurchaseDetailsDebug from '@/components/purchase-details-debug';
 
 export default function Home() {
   const t = useTranslations('home');
@@ -59,6 +60,9 @@ export default function Home() {
                 <li>{t('step4')}</li>
               </ol>
             </div>
+
+            {/* Debug Component */}
+            <PurchaseDetailsDebug />
           </div>
         </main>
       </div>
