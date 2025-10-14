@@ -77,10 +77,11 @@
     "exchangeRate": "Exchange Rate"
   },
   "wallet": {
-    "connectWallet": "Connect Your Wallet",
+    "connectWallet": "Connect Wallet",
     "connectDescription": "Connect your Solana wallet to participate in the presale",
     "selectWallet": "Select a wallet to connect",
     "walletConnected": "Wallet Connected",
+    "disconnect": "Disconnect",
     "address": "Wallet Address",
     "balance": "Balance",
     "insufficientBalance": "Insufficient balance",

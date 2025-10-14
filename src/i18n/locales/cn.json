@@ -77,10 +77,11 @@
     "exchangeRate": "兑换率"
   },
   "wallet": {
-    "connectWallet": "连接您的钱包",
+    "connectWallet": "连接钱包",
     "connectDescription": "连接您的 Solana 钱包以参与预售",
     "selectWallet": "选择要连接的钱包",
     "walletConnected": "钱包已连接",
+    "disconnect": "断开连接",
     "address": "钱包地址",
     "balance": "余额",
     "insufficientBalance": "余额不足",
