@@ -46,10 +46,13 @@ HOOPX is a token presale platform built on the Solana blockchain. This project p
 
 ## Technical Stack
 - **Blockchain**: Solana
-- **Framework**: Next.js (based on project structure)
+- **Framework**: Next.js 15.5.5 with React 19
 - **Payment Token**: USDT
 - **Lock Platform**: Jupiter Lock
 - **Primary Wallet Example**: Jupiter Wallet
+- **Localization**: next-intl (client-side, no URL routing)
+- **Styling**: Tailwind CSS 4
+- **Language Support**: English (en) and Chinese (cn)
 
 ## User Flow
 1. Open Solana wallet app → Navigate to HOOPX URL
@@ -196,3 +199,180 @@ Retrieves the current presale activity configuration and available purchase tier
 2. **Wallet Connect**: Call `GET /api/purchase/session` with user's public key to check existing purchases
 3. **Complete Purchase**: After blockchain transaction, call `POST /api/purchase/register` to record the purchase
 4. **Update Session**: After registration, response returns updated `FetchSessionVO` with purchase details
+
+---
+
+## Localization Setup
+
+### Implementation Approach
+This project uses **next-intl** with a client-side approach (no URL-based routing like `/en` or `/cn`). The locale is stored in localStorage and changed dynamically without affecting the URL.
+
+### File Structure
+```
+src/
+├── i18n/
+│   ├── config.ts                 # Locale configuration and types
+│   ├── locales/
+│   │   ├── en.json              # English translations
+│   │   └── cn.json              # Chinese translations
+├── components/
+│   ├── locale-provider.tsx      # Client-side locale provider with context
+│   └── locale-switcher.tsx      # Locale switcher component
+└── app/
+    └── layout.tsx               # Root layout wraps with LocaleProvider
+```
+
+### Key Files
+
+#### `src/i18n/config.ts`
+Defines supported locales and their display names:
+```typescript
+export const locales = ['en', 'cn'] as const;
+export type Locale = (typeof locales)[number];
+export const defaultLocale: Locale = 'en';
+export const localeNames: Record<Locale, string> = {
+  en: 'English',
+  cn: '中文',
+};
+```
+
+#### `src/components/locale-provider.tsx`
+Client-side provider that:
+- Loads locale from localStorage on mount
+- Provides context API via `useLocaleSettings()` hook
+- Wraps app with `NextIntlClientProvider`
+- Re-renders with new messages when locale changes
+
+#### `src/components/locale-switcher.tsx`
+Dropdown component to switch languages:
+```tsx
+import { useLocaleSettings } from './locale-provider';
+const { locale, setLocale } = useLocaleSettings();
+// ... render select dropdown
+```
+
+### Usage in Components
+
+**Using translations:**
+```tsx
+import { useTranslations } from 'next-intl';
+
+export default function MyComponent() {
+  const t = useTranslations('presale'); // namespace
+  return <h1>{t('title')}</h1>; // presale.title
+}
+```
+
+**Switching languages:**
+```tsx
+import { useLocaleSettings } from '@/components/locale-provider';
+
+export default function Header() {
+  const { locale, setLocale } = useLocaleSettings();
+  return (
+    <button onClick={() => setLocale(locale === 'en' ? 'cn' : 'en')}>
+      {locale === 'en' ? '中文' : 'English'}
+    </button>
+  );
+}
+```
+
+### Translation File Structure
+Translation files (en.json, cn.json) are organized by namespaces:
+```json
+{
+  "common": {
+    "loading": "Loading...",
+    "submit": "Submit"
+  },
+  "presale": {
+    "title": "Token Presale",
+    "selectAmount": "Select Purchase Amount"
+  },
+  "wallet": {
+    "connectWallet": "Connect Your Wallet"
+  }
+}
+```
+
+### Adding New Translations
+1. Add key-value pairs to both `src/i18n/locales/en.json` and `cn.json`
+2. Use in components with `useTranslations('namespace')`
+3. No URL routing changes needed - locale switches client-side only
+
+### Best Practices
+- **Always use translations** - Never hardcode any text in components
+- **Always add cursor-pointer** - Use `cursor-pointer` class on clickable buttons/links/images
+
+---
+
+## Development Setup
+
+### Running the Project
+The project is configured to run on port 3007:
+```bash
+npm run dev    # Development server on http://localhost:3007
+npm run build  # Production build
+npm start      # Production server on http://localhost:3007
+```
+
+### Project Structure (Current Implementation)
+```
+hoopx-presale/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx           # Root layout with LocaleProvider
+│   │   ├── page.tsx             # Home page (fully localized)
+│   │   ├── globals.css          # Global styles
+│   │   └── favicon.ico
+│   ├── components/
+│   │   ├── header.tsx           # Reusable header with language toggle
+│   │   ├── locale-provider.tsx  # Client-side i18n provider
+│   │   └── locale-switcher.tsx  # Language switcher dropdown
+│   └── i18n/
+│       ├── config.ts            # Locale types and configuration
+│       └── locales/
+│           ├── en.json          # English translations
+│           └── cn.json          # Chinese translations
+├── public/                      # Static assets
+├── package.json                 # Dependencies and scripts
+├── tsconfig.json                # TypeScript config (paths: @/* → ./src/*)
+├── next.config.ts               # Next.js configuration
+└── claude.md                    # This documentation file
+```
+
+## Current Implementation Status
+
+### ✅ Completed
+- [x] Next.js 15.5.5 project setup with React 19 and Tailwind CSS 4
+- [x] Client-side localization (next-intl) without URL routing
+- [x] English (en) and Chinese (cn) language support
+- [x] LocaleProvider with localStorage persistence
+- [x] Reusable Header component with language toggle
+- [x] Home page fully localized with all content
+- [x] Translation files structured by namespaces (home, common, presale, wallet, etc.)
+- [x] Project configured to run on port 3007
+- [x] Path aliases configured (@/* → ./src/*)
+- [x] Development documentation
+
+### 🚧 To Be Implemented
+- [ ] Solana wallet integration
+- [ ] Connect wallet functionality
+- [ ] Purchase flow UI
+- [ ] API integration with backend endpoints
+- [ ] Terms and conditions modal
+- [ ] Purchase amount selection
+- [ ] Transaction confirmation
+- [ ] Portfolio/dashboard view
+- [ ] Jupiter Lock integration
+- [ ] Token claiming functionality
+- [ ] Mobile responsiveness optimization
+- [ ] Error handling and loading states
+
+### 📝 Next Steps
+1. Implement Solana wallet connection (@solana/wallet-adapter-react)
+2. Create purchase modal with tier selection
+3. Integrate with backend API endpoints
+4. Add transaction status tracking
+5. Build portfolio/dashboard page
+6. Implement Jupiter Lock viewing functionality
