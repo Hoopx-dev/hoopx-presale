@@ -10,18 +10,12 @@ export default function Header() {
   };
 
   return (
-    <header className='flex items-center justify-between mb-12'>
-      <div className='flex items-center gap-2'>
-        <div className='w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center'>
-          <span className='text-white text-2xl'>🏀</span>
-        </div>
-        <h1 className='text-white text-2xl font-bold'>HOOPX</h1>
-      </div>
+    <header className='flex items-center justify-end mb-4'>
       <button
         onClick={toggleLocale}
-        className='text-white text-sm px-3 py-1 rounded border border-white/20 hover:border-white/40 transition-colors cursor-pointer'
+        className='text-white text-base px-4 py-2 rounded-lg border border-white/30 hover:border-white/50 hover:bg-white/10 transition-all cursor-pointer font-medium'
       >
-        {locale === "en" ? "中文" : "EN"}
+        {locale === "en" ? "EN" : "中文"}
       </button>
     </header>
   );

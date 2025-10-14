@@ -1,9 +1,10 @@
 {
   "home": {
-    "subtitle": "Presale Activity",
+    "title": "Presale Activity",
+    "presalePrice": "Presale Price",
     "exchangeRate": "USDT/HOOPX",
-    "buyButton": "Not Purchased Yet",
-    "purchaseRange": "1000-5000USDT Purchase Amount",
+    "buyNow": "Buy Now",
+    "purchaseRange": "Purchase Amount",
     "whatIsHoopx": "What is HOOPX?",
     "whatIsHoopxDesc": "HOOPX Token is a Solana-based token for basketball enthusiasts. Join our presale and be part of the community.",
     "howToPurchase": "How to Purchase",

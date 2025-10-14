@@ -1,9 +1,10 @@
 {
   "home": {
-    "subtitle": "认购活动",
+    "title": "认购活动",
+    "presalePrice": "认购价格",
     "exchangeRate": "USDT/HOOPX",
-    "buyButton": "还没认购",
-    "purchaseRange": "1000-5000USDT 认购金额",
+    "buyNow": "立即认购",
+    "purchaseRange": "认购金额",
     "whatIsHoopx": "什么是 HOOPX？",
     "whatIsHoopxDesc": "HOOPX 代币是基于 Solana 的篮球爱好者代币。加入我们的预售，成为社区的一部分。",
     "howToPurchase": "如何购买",
