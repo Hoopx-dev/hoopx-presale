@@ -32,6 +32,13 @@ export default function PortfolioPage() {
     console.log('  - trxId:', purchaseSession?.trxId);
     console.log('  - isLoading:', transactionLoading);
     console.log('  - transaction:', transaction);
+    if (transaction) {
+      console.log('  - tokenSymbol:', transaction.tokenSymbol);
+      console.log('  - tokenLogo:', transaction.tokenLogo);
+      console.log('  - tokenMint:', transaction.tokenMint);
+      console.log('  - amount:', transaction.amount);
+      console.log('  - to:', transaction.to);
+    }
   }, [purchaseSession?.trxId, transactionLoading, transaction]);
 
   // Redirect if not connected or no purchase
@@ -241,17 +248,21 @@ export default function PortfolioPage() {
                       {/* Transaction Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          {transaction.tokenLogo && (
-                            <Image
+                          {transaction.tokenLogo ? (
+                            <img
                               src={transaction.tokenLogo}
                               alt={transaction.tokenSymbol}
-                              width={16}
-                              height={16}
                               className="w-4 h-4 rounded-full"
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
                               }}
                             />
+                          ) : (
+                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                              <span className="text-white text-[8px] font-bold">
+                                {transaction.tokenSymbol.charAt(0)}
+                              </span>
+                            </div>
                           )}
                           <span className="text-white font-medium text-sm">
                             {transaction.tokenSymbol}
