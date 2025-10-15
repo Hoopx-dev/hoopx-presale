@@ -168,7 +168,15 @@
     "cliffEndsIn": "Cliff ends in",
     "vestingProgress": "Vesting Progress",
     "nextRelease": "Next Release",
-    "viewOnJupiter": "View on Jupiter Lock"
+    "viewOnJupiter": "View on Jupiter Lock",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "transferred": "Transferred",
+    "received": "Received",
+    "noTransactions": "No transfer records",
+    "loadingTransactions": "Loading transactions...",
+    "to": "To",
+    "from": "From"
   },
   "terms": {
     "title": "Terms and Conditions",
