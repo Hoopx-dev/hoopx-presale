@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import LocaleProvider from "@/components/locale-provider";
 import Providers from "@/components/providers";
+import StagingWatermark from "@/components/staging-watermark";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
         <Providers>
           <LocaleProvider>{children}</LocaleProvider>
         </Providers>
+        <StagingWatermark />
       </body>
     </html>
   );
