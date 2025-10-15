@@ -693,6 +693,18 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] NEXT_PUBLIC_IS_STAGING environment flag
   - [x] Visual indicator for staging/development deployments
   - [x] Automatic show/hide based on environment
+- [x] **Session Management**
+  - [x] Session storage in purchase store
+  - [x] Auto-store session when fetched
+  - [x] Auto-update session after purchase registration
+  - [x] Fixed API wrapper handling for session and register endpoints
+  - [x] Null safety fixes in portfolio page
+- [x] **Navigation & Redirects**
+  - [x] Automatic redirect after successful purchase (1.5s delay)
+  - [x] Global SessionRedirectHandler component
+  - [x] Auto-redirect to portfolio if user has successful purchase
+  - [x] Auto-redirect to purchase if portfolio accessed without purchase
+  - [x] Session check on every page load
 
 ### 🚧 To Be Implemented
 - [ ] Jupiter Lock integration for viewing locked tokens
@@ -798,7 +810,26 @@ const { truncatedHoopxAddress } = useHoopxWalletStore();
 
 ### Zustand Stores
 
-#### 1. UI Store (`useUIStore`)
+#### 1. Purchase Store (`usePurchaseStore`)
+Manages purchase flow state and session data:
+```typescript
+interface PurchaseState {
+  selectedTier: number | null;
+  walletAddress: string | null;
+  session: FetchSessionVO | null;  // NEW: Stores session data globally
+  setSelectedTier: (tier: number | null) => void;
+  setWalletAddress: (address: string | null) => void;
+  setSession: (session: FetchSessionVO | null) => void;  // NEW
+  reset: () => void;
+}
+```
+
+**Session Auto-Storage:**
+- Session automatically stored when fetched via `usePurchaseSession()` hook
+- Session updated after successful purchase registration
+- Available globally without re-fetching
+
+#### 2. UI Store (`useUIStore`)
 Manages purchase page UI state:
 ```typescript
 interface UIState {
@@ -807,7 +838,7 @@ interface UIState {
 }
 ```
 
-#### 2. Wallet Store (`useWalletStore`)
+#### 3. Wallet Store (`useWalletStore`)
 Manages connected user's wallet:
 ```typescript
 interface WalletState {
@@ -819,7 +850,7 @@ interface WalletState {
 ```
 Auto-synced with Solana wallet connection state.
 
-#### 3. HOOPX Wallet Store (`useHoopxWalletStore`)
+#### 4. HOOPX Wallet Store (`useHoopxWalletStore`)
 Stores the platform's receiving wallet address (decrypted from API):
 ```typescript
 interface HoopxWalletState {
@@ -872,6 +903,44 @@ const showToastNotification = (message: string, type: ToastType) => {
 showToastNotification('Transaction cancelled', 'info');
 showToastNotification('Insufficient balance', 'error');
 ```
+
+### Session Redirect Handler (`src/components/session-redirect-handler.tsx`)
+
+Global session checker that manages navigation based on user's purchase status.
+
+**Features:**
+- Runs on every page load when wallet is connected
+- Fetches session automatically via `usePurchaseSession()` hook
+- Smart redirect logic based on page and purchase status
+- Prevents manual URL navigation to unauthorized pages
+- Non-rendering component (returns null)
+
+**Redirect Logic:**
+```typescript
+// If on homepage or purchase page with successful purchase
+if ((pathname === '/' || pathname === '/purchase') && purchaseStatus === 1) {
+  router.push('/portfolio');
+}
+
+// If on portfolio page without successful purchase
+if (pathname === '/portfolio' && purchaseStatus !== 1) {
+  router.push('/purchase');
+}
+```
+
+**Integration:**
+```tsx
+// In src/components/providers.tsx
+<QueryClientProvider client={queryClient}>
+  <SessionRedirectHandler />  {/* Runs globally */}
+  {children}
+</QueryClientProvider>
+```
+
+**Use Cases:**
+- User with successful purchase refreshes homepage → redirects to portfolio
+- User tries to access `/portfolio` without purchase → redirects to `/purchase`
+- User with successful purchase tries to purchase again → blocked, redirected to portfolio
 
 ### Staging Watermark (`src/components/staging-watermark.tsx`)
 
@@ -1204,12 +1273,13 @@ hoopx-presale/
 │   │   ├── wallet-button.tsx       # Wallet connection
 │   │   ├── toast.tsx               # Toast notifications
 │   │   ├── staging-watermark.tsx   # Environment indicator
+│   │   ├── session-redirect-handler.tsx  # Global session checker
 │   │   ├── terms-modal.tsx         # Terms & conditions
 │   │   ├── confirmation-modal.tsx  # Transaction review
 │   │   ├── transaction-status-modal.tsx  # TX status
 │   │   ├── wallet-provider.tsx     # Solana wallet context
 │   │   ├── locale-provider.tsx     # i18n provider
-│   │   └── providers.tsx           # React Query wrapper
+│   │   └── providers.tsx           # React Query + SessionRedirectHandler
 │   ├── lib/
 │   │   ├── http.ts                 # Axios client
 │   │   ├── queryKeys.ts            # Query key factory

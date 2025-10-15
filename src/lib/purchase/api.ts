@@ -56,6 +56,11 @@ export const getPurchaseSession = async (
   const { data } = await http.get("/api/purchase/session", {
     params: { public_key: publicKey },
   });
+
+  // Handle potential wrapper structure like { code: 200, data: {...} }
+  if (data && typeof data === "object" && "data" in data) {
+    return data.data;
+  }
   return data;
 };
 
@@ -67,6 +72,11 @@ export const registerPurchase = async (
   dto: RegisterPurchaseDTO
 ): Promise<FetchSessionVO> => {
   const { data } = await http.post("/api/purchase/register", dto);
+
+  // Handle potential wrapper structure like { code: 200, data: {...} }
+  if (data && typeof data === "object" && "data" in data) {
+    return data.data;
+  }
   return data;
 };
 

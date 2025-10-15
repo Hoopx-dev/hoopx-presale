@@ -169,7 +169,7 @@ export default function PurchasePage() {
       setTransactionId(result.signature);
 
       // Register purchase in backend
-      await registerMutation.mutateAsync({
+      const registrationResult = await registerMutation.mutateAsync({
         publicKey: publicKey.toBase58(),
         amount: selectedTier,
         trxId: result.signature,
@@ -178,6 +178,14 @@ export default function PurchasePage() {
 
       // Show success status
       setTransactionStatus('success');
+
+      // Redirect to portfolio if purchase was successful
+      if (registrationResult.purchaseStatus === 1) {
+        // Small delay to show success modal briefly
+        setTimeout(() => {
+          router.push('/portfolio');
+        }, 1500);
+      }
     } catch (error: unknown) {
       // Close status modal on error (if it was opened)
       setShowStatusModal(false);
