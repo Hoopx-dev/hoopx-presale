@@ -105,17 +105,14 @@ export default function PurchasePage() {
     }
 
     try {
-      // Close confirmation modal
+      // Close confirmation modal (Phantom wallet will open)
       setShowConfirmModal(false);
-
-      // Show sending status
-      setTransactionStatus('sending');
-      setShowStatusModal(true);
 
       // Create connection
       const connection = createSolanaConnection();
 
-      // Execute transfer
+      // Execute transfer - this will open Phantom wallet
+      // Only show sending modal AFTER user confirms in wallet
       const result = await transferUSDT(
         connection,
         publicKey,
@@ -124,9 +121,14 @@ export default function PurchasePage() {
         signTransaction
       );
 
+      // If user cancelled in wallet, result will have success: false
       if (!result.success) {
         throw new Error(result.error || 'Transfer failed');
       }
+
+      // Transaction signed! Now show sending status
+      setTransactionStatus('sending');
+      setShowStatusModal(true);
 
       // Store transaction ID
       setTransactionId(result.signature);
@@ -143,9 +145,13 @@ export default function PurchasePage() {
       setTransactionStatus('success');
     } catch (error: any) {
       console.error('Transaction failed:', error);
-      // Close status modal on error
+      // Close status modal on error (if it was opened)
       setShowStatusModal(false);
-      alert(`Transaction failed: ${error.message}`);
+
+      // Only show alert if it's not a user rejection
+      if (!error.message?.includes('User rejected') && !error.message?.includes('cancelled')) {
+        alert(`Transaction failed: ${error.message}`);
+      }
     }
   };
 
