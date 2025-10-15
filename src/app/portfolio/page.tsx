@@ -28,6 +28,16 @@ export default function PortfolioPage() {
     purchaseDetails?.hoopxWalletAddress
   );
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[Portfolio] Transaction query params:');
+    console.log('  - trxId:', purchaseSession?.trxId);
+    console.log('  - publicKey:', publicKey?.toBase58());
+    console.log('  - hoopxWalletAddress:', purchaseDetails?.hoopxWalletAddress);
+    console.log('  - isLoading:', transactionLoading);
+    console.log('  - transaction:', transaction);
+  }, [purchaseSession?.trxId, publicKey, purchaseDetails?.hoopxWalletAddress, transactionLoading, transaction]);
+
   // Redirect if not connected or no purchase
   useEffect(() => {
     if (!connected) {

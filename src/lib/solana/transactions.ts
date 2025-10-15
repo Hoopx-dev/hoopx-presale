@@ -24,6 +24,10 @@ export async function fetchTransactionBySignature(
   hoopxAddress: string
 ): Promise<TransactionInfo | null> {
   try {
+    console.log('[Transaction Query] Starting fetch for:', signature);
+    console.log('[Transaction Query] User address:', userAddress);
+    console.log('[Transaction Query] HOOPX address:', hoopxAddress);
+
     const connection = createSolanaConnection();
 
     // Fetch the specific transaction
@@ -31,20 +35,27 @@ export async function fetchTransactionBySignature(
       maxSupportedTransactionVersion: 0,
     });
 
+    console.log('[Transaction Query] Transaction fetched:', tx ? 'Found' : 'Not found');
+
     if (!tx || !tx.meta) {
-      console.log('Transaction not found or no metadata');
+      console.log('[Transaction Query] Transaction not found or no metadata');
       return null;
     }
+
+    console.log('[Transaction Query] Transaction error:', tx.meta.err);
+    console.log('[Transaction Query] Instructions count:', tx.transaction.message.instructions.length);
 
     // Parse transaction to get token transfer details
     const transferInfo = parseTokenTransfer(tx, userAddress, hoopxAddress);
 
+    console.log('[Transaction Query] Transfer info:', transferInfo);
+
     if (!transferInfo) {
-      console.log('Could not parse transfer info from transaction');
+      console.log('[Transaction Query] Could not parse transfer info from transaction');
       return null;
     }
 
-    return {
+    const result = {
       signature,
       timestamp: tx.blockTime || Date.now() / 1000,
       amount: transferInfo.amount,
@@ -53,8 +64,11 @@ export async function fetchTransactionBySignature(
       status: tx.meta.err ? 'failed' : 'success',
       blockTime: tx.blockTime,
     };
+
+    console.log('[Transaction Query] Final result:', result);
+    return result;
   } catch (error) {
-    console.error('Error fetching transaction:', error);
+    console.error('[Transaction Query] Error fetching transaction:', error);
     return null;
   }
 }
@@ -68,10 +82,15 @@ function parseTokenTransfer(
   hoopxAddress: string
 ): { amount: number; from: string; to: string } | null {
   try {
+    console.log('[Parse Transfer] Starting parse...');
     // Look for token transfer instructions
     const instructions = tx.transaction.message.instructions;
+    console.log('[Parse Transfer] Total instructions:', instructions.length);
 
-    for (const ix of instructions) {
+    for (let i = 0; i < instructions.length; i++) {
+      const ix = instructions[i];
+      console.log(`[Parse Transfer] Instruction ${i}:`, 'parsed' in ix ? 'Has parsed' : 'No parsed');
+
       if ('parsed' in ix && ix.parsed && typeof ix.parsed === 'object') {
         const parsed = ix.parsed as {
           type: string;
@@ -87,6 +106,9 @@ function parseTokenTransfer(
           };
         };
 
+        console.log(`[Parse Transfer] Instruction ${i} type:`, parsed.type);
+        console.log(`[Parse Transfer] Instruction ${i} info:`, parsed.info);
+
         // Check for SPL token transfer
         if (parsed.type === 'transfer' || parsed.type === 'transferChecked') {
           const info = parsed.info;
@@ -94,6 +116,10 @@ function parseTokenTransfer(
           // Get source and destination addresses
           const source = info.source || info.authority;
           const destination = info.destination;
+
+          console.log('[Parse Transfer] Source:', source);
+          console.log('[Parse Transfer] Destination:', destination);
+          console.log('[Parse Transfer] Authority:', info.authority);
 
           // Check if this transfer is between user and HOOPX
           const fromUser = source && (
@@ -105,6 +131,9 @@ function parseTokenTransfer(
             tx.transaction.message.accountKeys.find(k => k.pubkey.toBase58() === destination)?.pubkey.toBase58() === hoopxAddress
           );
 
+          console.log('[Parse Transfer] From user?', fromUser);
+          console.log('[Parse Transfer] To HOOPX?', toHoopx);
+
           if (fromUser && toHoopx) {
             // Parse amount (handle both transfer and transferChecked)
             let amount = 0;
@@ -114,6 +143,9 @@ function parseTokenTransfer(
               amount = info.tokenAmount.uiAmount;
             }
 
+            console.log('[Parse Transfer] Raw amount:', info.amount);
+            console.log('[Parse Transfer] Decimals:', info.decimals);
+
             // For USDT with 6 decimals, convert from lamports
             if (info.decimals) {
               amount = amount / Math.pow(10, info.decimals);
@@ -121,6 +153,8 @@ function parseTokenTransfer(
               // Default to 6 decimals for USDT
               amount = amount / 1_000_000;
             }
+
+            console.log('[Parse Transfer] Final amount:', amount);
 
             return {
               amount,
@@ -132,9 +166,10 @@ function parseTokenTransfer(
       }
     }
 
+    console.log('[Parse Transfer] No matching transfer found');
     return null;
   } catch (error) {
-    console.error('Error parsing token transfer:', error);
+    console.error('[Parse Transfer] Error parsing token transfer:', error);
     return null;
   }
 }
