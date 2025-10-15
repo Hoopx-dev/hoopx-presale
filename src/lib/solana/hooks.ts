@@ -1,23 +1,25 @@
 import { useQuery } from '@tanstack/react-query';
-import { fetchTransactionsBetweenWallets } from './transactions';
+import { fetchTransactionBySignature } from './transactions';
 
 /**
- * Hook to fetch transactions between user wallet and HOOPX wallet
+ * Hook to fetch a specific transaction by signature
  */
-export function useTransactionHistory(
+export function useTransaction(
+  signature?: string,
   userAddress?: string,
   hoopxAddress?: string
 ) {
   return useQuery({
-    queryKey: ['transactions', userAddress, hoopxAddress],
+    queryKey: ['transaction', signature],
     queryFn: async () => {
-      if (!userAddress || !hoopxAddress) {
-        return [];
+      if (!signature || !userAddress || !hoopxAddress) {
+        return null;
       }
-      return fetchTransactionsBetweenWallets(userAddress, hoopxAddress);
+      return fetchTransactionBySignature(signature, userAddress, hoopxAddress);
     },
-    enabled: !!userAddress && !!hoopxAddress,
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute
+    enabled: !!signature && !!userAddress && !!hoopxAddress,
+    staleTime: 5 * 60 * 1000, // 5 minutes (transactions don't change)
+    retry: 3, // Retry on failure
+    retryDelay: 1000, // Wait 1 second between retries
   });
 }

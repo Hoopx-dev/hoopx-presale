@@ -1,4 +1,4 @@
-import { PublicKey, ParsedTransactionWithMeta } from '@solana/web3.js';
+import { ParsedTransactionWithMeta } from '@solana/web3.js';
 import { createSolanaConnection } from './transfer';
 
 export interface TransactionInfo {
@@ -12,72 +12,50 @@ export interface TransactionInfo {
 }
 
 /**
- * Fetch transactions between user wallet and HOOPX wallet
+ * Fetch a single transaction by signature
+ * @param signature - Transaction signature/ID
  * @param userAddress - User's wallet address
  * @param hoopxAddress - HOOPX wallet address
- * @returns Array of transaction information
+ * @returns Transaction information or null
  */
-export async function fetchTransactionsBetweenWallets(
+export async function fetchTransactionBySignature(
+  signature: string,
   userAddress: string,
   hoopxAddress: string
-): Promise<TransactionInfo[]> {
+): Promise<TransactionInfo | null> {
   try {
     const connection = createSolanaConnection();
-    const userPubkey = new PublicKey(userAddress);
 
-    // Fetch signatures for transactions involving user's wallet
-    const signatures = await connection.getSignaturesForAddress(userPubkey, {
-      limit: 100, // Fetch last 100 transactions
+    // Fetch the specific transaction
+    const tx = await connection.getParsedTransaction(signature, {
+      maxSupportedTransactionVersion: 0,
     });
 
-    if (signatures.length === 0) {
-      return [];
+    if (!tx || !tx.meta) {
+      console.log('Transaction not found or no metadata');
+      return null;
     }
 
-    // Fetch full transaction details
-    const transactions = await connection.getParsedTransactions(
-      signatures.map(sig => sig.signature),
-      {
-        maxSupportedTransactionVersion: 0,
-      }
-    );
+    // Parse transaction to get token transfer details
+    const transferInfo = parseTokenTransfer(tx, userAddress, hoopxAddress);
 
-    // Filter and parse transactions
-    const filteredTransactions: TransactionInfo[] = [];
-
-    for (let i = 0; i < transactions.length; i++) {
-      const tx = transactions[i];
-      const sig = signatures[i];
-
-      if (!tx || !tx.meta) continue;
-
-      // Check if transaction involves HOOPX wallet
-      const accountKeys = tx.transaction.message.accountKeys.map(key => key.pubkey.toBase58());
-      const involvesHoopx = accountKeys.includes(hoopxAddress);
-
-      if (!involvesHoopx) continue;
-
-      // Parse transaction to get token transfer details
-      const transferInfo = parseTokenTransfer(tx, userAddress, hoopxAddress);
-
-      if (transferInfo) {
-        filteredTransactions.push({
-          signature: sig.signature,
-          timestamp: tx.blockTime || Date.now() / 1000,
-          amount: transferInfo.amount,
-          from: transferInfo.from,
-          to: transferInfo.to,
-          status: tx.meta.err ? 'failed' : 'success',
-          blockTime: tx.blockTime,
-        });
-      }
+    if (!transferInfo) {
+      console.log('Could not parse transfer info from transaction');
+      return null;
     }
 
-    // Sort by timestamp descending (most recent first)
-    return filteredTransactions.sort((a, b) => b.timestamp - a.timestamp);
+    return {
+      signature,
+      timestamp: tx.blockTime || Date.now() / 1000,
+      amount: transferInfo.amount,
+      from: transferInfo.from,
+      to: transferInfo.to,
+      status: tx.meta.err ? 'failed' : 'success',
+      blockTime: tx.blockTime,
+    };
   } catch (error) {
-    console.error('Error fetching transactions:', error);
-    return [];
+    console.error('Error fetching transaction:', error);
+    return null;
   }
 }
 

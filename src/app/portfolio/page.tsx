@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Header from '@/components/header';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
-import { useTransactionHistory } from '@/lib/solana/hooks';
+import { useTransaction } from '@/lib/solana/hooks';
 import { formatAddress, getExplorerUrl } from '@/lib/solana/transactions';
 import { IoArrowUpCircle } from 'react-icons/io5';
 
@@ -21,8 +21,9 @@ export default function PortfolioPage() {
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<'purchase' | 'transactions'>('purchase');
 
-  // Fetch transaction history
-  const { data: transactions, isLoading: transactionsLoading } = useTransactionHistory(
+  // Fetch the specific transaction from the session
+  const { data: transaction, isLoading: transactionLoading } = useTransaction(
+    purchaseSession?.trxId,
     publicKey?.toBase58(),
     purchaseDetails?.hoopxWalletAddress
   );
@@ -57,41 +58,29 @@ export default function PortfolioPage() {
     });
   };
 
-  // Group transactions by date
-  const groupedTransactions = useMemo(() => {
-    if (!transactions) return {};
+  // Get date label for transaction
+  const getDateLabel = (timestamp: number) => {
+    const txDate = new Date(timestamp * 1000);
+    txDate.setHours(0, 0, 0, 0);
 
-    const groups: Record<string, typeof transactions> = {};
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    transactions.forEach((tx) => {
-      const txDate = new Date(tx.timestamp * 1000);
-      txDate.setHours(0, 0, 0, 0);
-
-      let label: string;
-      if (txDate.getTime() === today.getTime()) {
-        label = t('today');
-      } else if (txDate.getTime() === yesterday.getTime()) {
-        label = t('yesterday');
-      } else {
-        label = txDate.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        });
-      }
-
-      if (!groups[label]) {
-        groups[label] = [];
-      }
-      groups[label].push(tx);
-    });
-
-    return groups;
-  }, [transactions, t]);
+    if (txDate.getTime() === today.getTime()) {
+      return t('today');
+    } else if (txDate.getTime() === yesterday.getTime()) {
+      return t('yesterday');
+    } else {
+      return txDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+  };
 
   if (!connected || !purchaseSession) {
     return null; // Will redirect
@@ -215,65 +204,58 @@ export default function PortfolioPage() {
 
           {activeTab === 'transactions' && (
             <div className="space-y-4">
-              {transactionsLoading && (
+              {transactionLoading && (
                 <p className="text-white/50 text-center py-8">{t('loadingTransactions')}</p>
               )}
 
-              {!transactionsLoading && transactions && transactions.length === 0 && (
+              {!transactionLoading && !transaction && (
                 <p className="text-white/50 text-center py-8">{t('noTransactions')}</p>
               )}
 
-              {!transactionsLoading && Object.keys(groupedTransactions).length > 0 && (
+              {!transactionLoading && transaction && (
                 <>
-                  {Object.entries(groupedTransactions).map(([date, txs]) => (
-                    <div key={date}>
-                      {/* Date Header */}
-                      <h3 className="text-white text-sm mb-3">{date}</h3>
+                  {/* Date Header */}
+                  <h3 className="text-white text-sm mb-3">
+                    {getDateLabel(transaction.timestamp)}
+                  </h3>
 
-                      {/* Transaction List */}
-                      <div className="space-y-3">
-                        {txs.map((tx) => (
-                          <a
-                            key={tx.signature}
-                            href={getExplorerUrl(tx.signature)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="block bg-white/10 rounded-2xl p-4 hover:bg-white/15 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              {/* Status Icon */}
-                              <div className="flex-shrink-0 w-10 h-10 bg-purple-600/50 rounded-full flex items-center justify-center">
-                                <IoArrowUpCircle className="text-white text-xl" />
-                              </div>
+                  {/* Transaction Card */}
+                  <a
+                    href={getExplorerUrl(transaction.signature)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-white/10 rounded-2xl p-4 hover:bg-white/15 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      {/* Status Icon */}
+                      <div className="flex-shrink-0 w-10 h-10 bg-purple-600/50 rounded-full flex items-center justify-center">
+                        <IoArrowUpCircle className="text-white text-xl" />
+                      </div>
 
-                              {/* Transaction Info */}
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-white font-medium text-sm">USDT</span>
-                                  <span className="text-white/50 text-xs px-2 py-0.5 bg-white/10 rounded">
-                                    {t('transferred')}
-                                  </span>
-                                </div>
-                                <p className="text-white/50 text-xs">
-                                  {t('to')}: {formatAddress(tx.to)}
-                                </p>
-                              </div>
+                      {/* Transaction Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-white font-medium text-sm">USDT</span>
+                          <span className="text-white/50 text-xs px-2 py-0.5 bg-white/10 rounded">
+                            {t('transferred')}
+                          </span>
+                        </div>
+                        <p className="text-white/50 text-xs">
+                          {t('to')}: {formatAddress(transaction.to)}
+                        </p>
+                      </div>
 
-                              {/* Amount and Time */}
-                              <div className="text-right flex-shrink-0">
-                                <p className="text-red-400 font-bold text-base mb-1">
-                                  -{formatNumber(tx.amount)} USDT
-                                </p>
-                                <p className="text-white/50 text-xs">
-                                  {formatTime(tx.timestamp)}
-                                </p>
-                              </div>
-                            </div>
-                          </a>
-                        ))}
+                      {/* Amount and Time */}
+                      <div className="text-right flex-shrink-0">
+                        <p className="text-red-400 font-bold text-base mb-1">
+                          -{formatNumber(transaction.amount)} USDT
+                        </p>
+                        <p className="text-white/50 text-xs">
+                          {formatTime(transaction.timestamp)}
+                        </p>
                       </div>
                     </div>
-                  ))}
+                  </a>
 
                   {/* End message */}
                   <p className="text-white/50 text-center text-sm py-4">
