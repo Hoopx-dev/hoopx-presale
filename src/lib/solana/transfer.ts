@@ -2,6 +2,8 @@ import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
   TOKEN_PROGRAM_ID,
 } from '@solana/spl-token';
 
@@ -59,18 +61,13 @@ export async function transferUSDT(
       recipientPublicKey
     );
 
-    // USDT has 6 decimals
-    const amountInLamports = amount * 1_000_000;
-
-    // Create transfer instruction
-    const transferInstruction = createTransferInstruction(
-      senderTokenAccount,
-      recipientTokenAccount,
-      senderPublicKey,
-      amountInLamports,
-      [],
-      TOKEN_PROGRAM_ID
-    );
+    // Check if recipient token account exists, if not, create it
+    let recipientAccountExists = true;
+    try {
+      await getAccount(connection, recipientTokenAccount);
+    } catch (error) {
+      recipientAccountExists = false;
+    }
 
     // Get recent blockhash
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
@@ -80,7 +77,32 @@ export async function transferUSDT(
       feePayer: senderPublicKey,
       blockhash,
       lastValidBlockHeight,
-    }).add(transferInstruction);
+    });
+
+    // If recipient token account doesn't exist, create it first
+    if (!recipientAccountExists) {
+      const createAccountInstruction = createAssociatedTokenAccountInstruction(
+        senderPublicKey, // payer
+        recipientTokenAccount, // associated token account
+        recipientPublicKey, // owner
+        usdtMint // mint
+      );
+      transaction.add(createAccountInstruction);
+    }
+
+    // USDT has 6 decimals
+    const amountInLamports = amount * 1_000_000;
+
+    // Add transfer instruction
+    const transferInstruction = createTransferInstruction(
+      senderTokenAccount,
+      recipientTokenAccount,
+      senderPublicKey,
+      amountInLamports,
+      [],
+      TOKEN_PROGRAM_ID
+    );
+    transaction.add(transferInstruction);
 
     // Sign transaction
     const signedTransaction = await signTransaction(transaction);
