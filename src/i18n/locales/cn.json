@@ -153,6 +153,8 @@
     "releaseFrequency": "释放频率",
     "months": "个月",
     "monthly": "每月",
+    "perMonth": "/月",
+    "per3Months": "/3个月",
     "totalTokens": "总代币",
     "lockedTokens": "锁定代币",
     "claimableTokens": "可领取代币",

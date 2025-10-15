@@ -153,6 +153,8 @@
     "releaseFrequency": "Release Frequency",
     "months": "months",
     "monthly": "Monthly",
+    "perMonth": "/month",
+    "per3Months": "/3 months",
     "totalTokens": "Total Tokens",
     "lockedTokens": "Locked Tokens",
     "claimableTokens": "Claimable Tokens",

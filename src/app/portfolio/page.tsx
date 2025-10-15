@@ -68,7 +68,7 @@ export default function PortfolioPage() {
           <div className="bg-white/10 rounded-2xl p-5 mb-6">
             <div className="flex items-center gap-3 mb-4">
               <Image
-                src="/images/coin.png"
+                src="/images/token-badge.png"
                 alt="HOOPX"
                 width={48}
                 height={48}
@@ -129,7 +129,9 @@ export default function PortfolioPage() {
             <div className="flex justify-between items-center">
               <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
               <span className="text-white font-medium text-sm">
-                {purchaseSession?.vestingFrequency || t('monthly')}
+                {purchaseSession?.vestingFrequency === '1'
+                  ? t('perMonth')
+                  : t('per3Months')}
               </span>
             </div>
           </div>
