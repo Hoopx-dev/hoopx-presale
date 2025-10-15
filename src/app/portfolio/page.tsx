@@ -30,7 +30,10 @@ export default function PortfolioPage() {
     return purchaseSession.purchasedAmount / purchaseSession.rate;
   }, [purchaseSession]);
 
-  const formatNumber = (num: number) => num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  const formatNumber = (num: number | undefined | null) => {
+    if (num === undefined || num === null) return '0';
+    return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  };
 
   if (!connected || !purchaseSession) {
     return null; // Will redirect
@@ -74,12 +77,12 @@ export default function PortfolioPage() {
               <div className="flex-1">
                 <p className="text-white font-bold text-lg">HOOPX</p>
                 <p className="text-white/70 text-sm">
-                  {purchaseSession.rate} USDT
+                  {purchaseSession?.rate || '0.003'} USDT
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-white font-bold text-lg">
-                  {formatNumber(purchaseSession.purchasedAmount)} USDT
+                  {formatNumber(purchaseSession?.purchasedAmount)} USDT
                 </p>
                 <p className="text-cyan-400 text-sm">
                   {formatNumber(hoopxAmount)} HOOPX
@@ -110,7 +113,7 @@ export default function PortfolioPage() {
             <div className="flex justify-between items-center">
               <span className="text-white/70 text-sm">{t('vestingPeriod')}</span>
               <span className="text-white font-medium text-sm">
-                {purchaseSession.vesting} {t('months')}
+                {purchaseSession?.vesting || '12'} {t('months')}
               </span>
             </div>
 
@@ -118,7 +121,7 @@ export default function PortfolioPage() {
             <div className="flex justify-between items-center">
               <span className="text-white/70 text-sm">{t('cliffPeriod')}</span>
               <span className="text-white font-medium text-sm">
-                {purchaseSession.cliff} {t('months')}
+                {purchaseSession?.cliff || '3'} {t('months')}
               </span>
             </div>
 
@@ -126,7 +129,7 @@ export default function PortfolioPage() {
             <div className="flex justify-between items-center">
               <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
               <span className="text-white font-medium text-sm">
-                {purchaseSession.vestingFrequency || t('monthly')}
+                {purchaseSession?.vestingFrequency || t('monthly')}
               </span>
             </div>
           </div>
