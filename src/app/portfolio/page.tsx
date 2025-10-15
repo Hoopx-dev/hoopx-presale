@@ -241,7 +241,21 @@ export default function PortfolioPage() {
                       {/* Transaction Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-white font-medium text-sm">USDT</span>
+                          {transaction.tokenLogo && (
+                            <Image
+                              src={transaction.tokenLogo}
+                              alt={transaction.tokenSymbol}
+                              width={16}
+                              height={16}
+                              className="w-4 h-4 rounded-full"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          )}
+                          <span className="text-white font-medium text-sm">
+                            {transaction.tokenSymbol}
+                          </span>
                           <span className="text-white/50 text-xs px-2 py-0.5 bg-white/10 rounded">
                             {t('transferred')}
                           </span>
@@ -254,7 +268,7 @@ export default function PortfolioPage() {
                       {/* Amount and Time */}
                       <div className="text-right flex-shrink-0">
                         <p className="text-red-400 font-bold text-base mb-1">
-                          -{formatNumber(transaction.amount)} USDT
+                          -{formatNumber(transaction.amount)} {transaction.tokenSymbol}
                         </p>
                         <p className="text-white/50 text-xs">
                           {formatTime(transaction.timestamp)}

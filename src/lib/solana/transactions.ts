@@ -9,6 +9,10 @@ export interface TransactionInfo {
   to: string;
   status: 'success' | 'failed';
   blockTime: number | null | undefined;
+  tokenSymbol: string;
+  tokenName?: string;
+  tokenMint?: string;
+  tokenLogo?: string;
 }
 
 /**
@@ -57,6 +61,10 @@ export async function fetchTransactionBySignature(
       to: transferInfo.to,
       status: tx.meta.err ? 'failed' : 'success',
       blockTime: tx.blockTime,
+      tokenSymbol: transferInfo.tokenSymbol,
+      tokenName: transferInfo.tokenName,
+      tokenMint: transferInfo.tokenMint,
+      tokenLogo: transferInfo.tokenLogo,
     };
 
     console.log('[Transaction Query] Final result:', result);
@@ -73,7 +81,15 @@ export async function fetchTransactionBySignature(
  */
 function parseTokenTransfer(
   tx: ParsedTransactionWithMeta
-): { amount: number; from: string; to: string } | null {
+): {
+  amount: number;
+  from: string;
+  to: string;
+  tokenSymbol: string;
+  tokenName?: string;
+  tokenMint?: string;
+  tokenLogo?: string;
+} | null {
   try {
     console.log('[Parse Transfer] Starting parse...');
     // Look for token transfer instructions
@@ -93,6 +109,7 @@ function parseTokenTransfer(
             authority?: string;
             amount?: string | number;
             decimals?: number;
+            mint?: string;
             tokenAmount?: {
               uiAmount?: number;
             };
@@ -153,10 +170,60 @@ function parseTokenTransfer(
           console.log('[Parse Transfer] From address:', fromAddress);
           console.log('[Parse Transfer] To address:', toAddress);
 
+          // Extract token metadata
+          const tokenMint = info.mint;
+          console.log('[Parse Transfer] Token mint:', tokenMint);
+
+          // Try to get token metadata from pre/post token balances
+          let tokenSymbol = 'Unknown';
+          let tokenName: string | undefined;
+          let tokenLogo: string | undefined;
+
+          if (tx.meta?.preTokenBalances || tx.meta?.postTokenBalances) {
+            const tokenBalances = tx.meta?.postTokenBalances || tx.meta?.preTokenBalances || [];
+
+            // Find the token balance entry that matches our transfer
+            const tokenBalance = tokenBalances.find(
+              (balance) => balance.mint === tokenMint
+            );
+
+            if (tokenBalance && tokenBalance.uiTokenAmount) {
+              // Get the mint address to look up token info
+              console.log('[Parse Transfer] Found token balance:', tokenBalance);
+
+              // Common token symbols based on mint address
+              const knownTokens: Record<string, { symbol: string; name: string; logo?: string }> = {
+                'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': {
+                  symbol: 'USDT',
+                  name: 'Tether USD',
+                  logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png'
+                },
+                'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': {
+                  symbol: 'USDC',
+                  name: 'USD Coin',
+                  logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png'
+                }
+              };
+
+              if (tokenMint && knownTokens[tokenMint]) {
+                tokenSymbol = knownTokens[tokenMint].symbol;
+                tokenName = knownTokens[tokenMint].name;
+                tokenLogo = knownTokens[tokenMint].logo;
+              }
+            }
+          }
+
+          console.log('[Parse Transfer] Token symbol:', tokenSymbol);
+          console.log('[Parse Transfer] Token name:', tokenName);
+
           return {
             amount,
             from: fromAddress,
             to: toAddress,
+            tokenSymbol,
+            tokenName,
+            tokenMint,
+            tokenLogo,
           };
         }
       }
