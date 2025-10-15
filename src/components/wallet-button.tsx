@@ -5,6 +5,7 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { IoWallet } from 'react-icons/io5';
+import { useWalletStore } from '@/lib/store/useWalletStore';
 
 export default function WalletButton() {
   const [mounted, setMounted] = useState(false);
@@ -13,10 +14,20 @@ export default function WalletButton() {
   const { setVisible } = useWalletModal();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTranslations('wallet');
+  const { setAddress, clearAddress, truncatedAddress } = useWalletStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Sync wallet address to store
+  useEffect(() => {
+    if (connected && publicKey) {
+      setAddress(publicKey.toBase58());
+    } else {
+      clearAddress();
+    }
+  }, [connected, publicKey, setAddress, clearAddress]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -50,9 +61,6 @@ export default function WalletButton() {
     setShowDropdown(false);
   };
 
-  const formatAddress = (address: string) => {
-    return `${address.slice(0, 4)}...${address.slice(-4)}`;
-  };
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -67,7 +75,7 @@ export default function WalletButton() {
         {connected && publicKey ? (
           <>
             <IoWallet className="text-lg flex-shrink-0" />
-            {formatAddress(publicKey.toBase58())}
+            {truncatedAddress}
           </>
         ) : (
           t('connectWallet')

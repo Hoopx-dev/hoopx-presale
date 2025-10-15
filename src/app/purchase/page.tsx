@@ -81,17 +81,17 @@ export default function PurchasePage() {
                 onClick={() => setSelectedTier(tier)}
                 disabled={alreadyPurchased || detailsLoading}
                 className={`
-                  relative py-4 px-3 rounded-xl font-bold text-base transition-all
+                  relative py-4 px-3 rounded-xl font-bold text-2xl transition-all text-white
                   ${selectedTier === tier
-                    ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-purple-900'
-                    : 'bg-white/10 text-white hover:bg-white/20'
+                    ? 'border-2 border-green-400'
+                    : 'border border-white/30 hover:border-white/50'
                   }
                   ${alreadyPurchased ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                 `}
               >
                 {formatNumber(tier)}
                 {selectedTier === tier && (
-                  <IoCheckmarkCircle className="absolute top-2 right-2 text-purple-900 text-xl" />
+                  <IoCheckmarkCircle className="absolute top-2 left-2 text-green-400 text-2xl" />
                 )}
               </button>
             ))}

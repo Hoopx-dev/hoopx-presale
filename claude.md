@@ -217,12 +217,13 @@ This project uses **next-intl** with a client-side approach (no URL-based routin
 src/
 ├── i18n/
 │   ├── config.ts                 # Locale configuration and types
-│   ├── locales/
-│   │   ├── en.json              # English translations
-│   │   └── cn.json              # Chinese translations
+│   └── locales/
+│       ├── en.json              # English translations
+│       └── cn.json              # Chinese translations
 ├── components/
 │   ├── locale-provider.tsx      # Client-side locale provider with context
-│   └── locale-switcher.tsx      # Locale switcher component
+│   ├── header.tsx               # Header with logo, wallet button, and language toggle
+│   └── wallet-button.tsx        # Wallet connection button with dropdown
 └── app/
     └── layout.tsx               # Root layout wraps with LocaleProvider
 ```
@@ -327,31 +328,42 @@ hoopx-presale/
 ├── src/
 │   ├── app/
 │   │   ├── layout.tsx           # Root layout with Providers + LocaleProvider
-│   │   ├── page.tsx             # Home page (fully localized)
+│   │   ├── page.tsx             # Home page with coin logo, rate display, buy button
+│   │   ├── purchase/
+│   │   │   └── page.tsx         # Purchase page with tier selection
 │   │   ├── globals.css          # Global styles
 │   │   └── favicon.ico
 │   ├── components/
-│   │   ├── header.tsx           # Reusable header with language toggle
+│   │   ├── header.tsx           # Header with HOOPX logo, wallet button, language toggle
+│   │   ├── wallet-button.tsx    # Custom wallet button with dropdown
+│   │   ├── wallet-provider.tsx  # Solana wallet context provider
 │   │   ├── locale-provider.tsx  # Client-side i18n provider
-│   │   ├── locale-switcher.tsx  # Language switcher dropdown
-│   │   ├── providers.tsx        # React Query provider
+│   │   ├── providers.tsx        # React Query + Wallet providers
 │   │   └── purchase-details-debug.tsx  # Debug component for testing API
 │   ├── lib/
 │   │   ├── http.ts              # Axios client with interceptors
 │   │   ├── queryKeys.ts         # React Query key factory
-│   │   └── purchase/
-│   │       ├── types.ts         # TypeScript interfaces for API
-│   │       ├── api.ts           # API functions for all endpoints
-│   │       └── hooks.ts         # React Query hooks
-│   ├── store/
-│   │   └── purchase.ts          # Zustand store for local state
+│   │   ├── crypto/
+│   │   │   └── decrypt.ts       # AES decryption helper for hoopxWalletAddress
+│   │   ├── purchase/
+│   │   │   ├── types.ts         # TypeScript interfaces for API
+│   │   │   ├── api.ts           # API functions with auto-decryption
+│   │   │   └── hooks.ts         # React Query hooks
+│   │   └── store/
+│   │       ├── useUIStore.ts            # UI state (selected tier)
+│   │       ├── useWalletStore.ts        # User wallet state (truncated address)
+│   │       └── useHoopxWalletStore.ts   # HOOPX wallet state (truncated)
 │   └── i18n/
 │       ├── config.ts            # Locale types and configuration
 │       └── locales/
 │           ├── en.json          # English translations
 │           └── cn.json          # Chinese translations
-├── public/                      # Static assets
-├── .env.local                   # Environment variables (API_BASE_URL)
+├── public/
+│   └── images/
+│       ├── coin.png             # HOOPX coin logo
+│       └── brand-logo.png       # HOOPX brand logo
+├── .env.local                   # Environment variables (API_BASE_URL, AES keys)
+├── .env.example                 # Example environment file
 ├── package.json                 # Dependencies and scripts
 ├── tsconfig.json                # TypeScript config (paths: @/* → ./src/*)
 ├── next.config.ts               # Next.js configuration
@@ -579,9 +591,9 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
 - [x] Client-side localization (next-intl) without URL routing
 - [x] English (en) and Chinese (cn) language support
 - [x] LocaleProvider with localStorage persistence
-- [x] Reusable Header component with language toggle
+- [x] Reusable Header component with HOOPX logo and language toggle
 - [x] Home page fully localized with all content
-- [x] Translation files structured by namespaces (home, common, presale, wallet, etc.)
+- [x] Translation files structured by namespaces (home, common, presale, wallet, purchase, etc.)
 - [x] Project configured to run on port 3007
 - [x] Path aliases configured (@/* → ./src/*)
 - [x] Development documentation
@@ -596,47 +608,166 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Environment configuration (.env.local with API_BASE_URL)
   - [x] React Query provider wrapper in layout.tsx
   - [x] Debug component for testing API integration (purchase-details-debug.tsx)
+- [x] **Solana Wallet Integration**
+  - [x] @solana/wallet-adapter packages installed
+  - [x] WalletContextProvider with Phantom & Solflare support
+  - [x] Custom WalletButton component with dropdown
+  - [x] Wallet connection/disconnect functionality
+  - [x] Hydration-safe implementation with mounted state
+  - [x] Wallet address display with truncation (e.g., CiC7...xZm1)
+  - [x] useWalletStore for managing connected wallet state
+- [x] **Homepage Redesign**
+  - [x] Mobile-first design matching mockups
+  - [x] HOOPX coin logo and brand logo display
+  - [x] Dynamic exchange rate from API (0.003 USDT/HOOPX)
+  - [x] Dynamic tier range display (1000-5000 USDT)
+  - [x] Buy Now button with wallet-gated navigation
+- [x] **Purchase Page (/purchase)**
+  - [x] Tier selection grid with 5 tiers (1000-5000 USDT)
+  - [x] Green border styling for selected tier with checkmark
+  - [x] Dynamic HOOPX calculation based on tier and rate
+  - [x] Purchase details display (vesting, cliff, frequency)
+  - [x] Current price, purchase limit, and current assets display
+  - [x] Already purchased wallet detection
+  - [x] Auto-redirect if wallet not connected
+  - [x] useUIStore for tier selection persistence
+- [x] **Security & Encryption**
+  - [x] AES decryption helper for hoopxWalletAddress
+  - [x] crypto-js integration with CBC mode and PKCS7 padding
+  - [x] Environment variables for AES key and IV
+  - [x] Automatic decryption in getPurchaseDetails API
+  - [x] useHoopxWalletStore for truncated HOOPX wallet address
+  - [x] Console logging for debugging encrypted/decrypted values
 
 ### 🚧 To Be Implemented
-- [ ] Solana wallet integration (@solana/wallet-adapter-react)
-- [ ] Connect wallet functionality
-- [ ] Purchase flow UI with tier selection
 - [ ] Terms and conditions modal
 - [ ] Transaction confirmation flow
+- [ ] USDT transfer to HOOPX wallet implementation
 - [ ] Portfolio/dashboard view
 - [ ] Jupiter Lock integration for viewing locked tokens
 - [ ] Token claiming functionality
-- [ ] Mobile responsiveness optimization
 - [ ] Enhanced error handling and loading states
 - [ ] Transaction status tracking and notifications
 
 ### 📝 Next Steps
-1. **Solana Wallet Integration**
-   - Install @solana/wallet-adapter packages
-   - Create WalletProvider component
-   - Add wallet connection button to header
-   - Implement wallet connection flow
-
-2. **Purchase Flow UI**
-   - Create purchase modal component
-   - Implement tier selection UI using usePurchaseDetails hook
-   - Add wallet connection check
-   - Show vesting/cliff period details
-   - Implement purchase confirmation
-
-3. **Transaction Processing**
+1. **Transaction Processing**
+   - Implement USDT transfer to HOOPX wallet
    - Integrate Solana transaction signing
    - Handle transaction confirmation
    - Call registerPurchase hook after successful blockchain transaction
    - Show success/error notifications
 
-4. **Portfolio Dashboard**
+2. **Terms and Conditions**
+   - Create terms modal component
+   - Implement 10-second wait timer
+   - Add acceptance checkbox
+
+3. **Portfolio Dashboard**
    - Create portfolio page
    - Use usePurchaseSession hook to fetch user data
    - Display purchase history and status
    - Show vesting schedule and claimable amounts
 
-5. **Jupiter Lock Integration**
+4. **Jupiter Lock Integration**
    - Research Jupiter Lock API/SDK
    - Implement lock viewing functionality
    - Add claim button when cliff period ends
+
+5. **Enhanced UX**
+   - Add loading states and skeletons
+   - Implement error boundaries
+   - Add transaction status notifications
+   - Optimize mobile responsiveness
+
+---
+
+## Security Implementation
+
+### AES Encryption for Wallet Address
+
+The `hoopxWalletAddress` returned from the API is encrypted using AES-CBC encryption. The system automatically decrypts it.
+
+#### Configuration
+Environment variables in `.env.local`:
+```env
+NEXT_PUBLIC_AES_KEY=9rDwYuLr+WvuC8OnfBfCbg==
+NEXT_PUBLIC_AES_IV=l8RvOT8Vgfp6zyBxKY7Hxw==
+```
+
+#### Implementation
+Located in `src/lib/crypto/decrypt.ts`:
+```typescript
+import CryptoJS from 'crypto-js';
+
+export function decryptAes(cipherText: string): string {
+  const key = process.env.NEXT_PUBLIC_AES_KEY;
+  const iv = process.env.NEXT_PUBLIC_AES_IV;
+
+  const parsedKey = CryptoJS.enc.Base64.parse(key);
+  const parsedIv = CryptoJS.enc.Base64.parse(iv);
+
+  const decrypted = CryptoJS.AES.decrypt(cipherText, parsedKey, {
+    iv: parsedIv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7,
+  });
+
+  return decrypted.toString(CryptoJS.enc.Utf8);
+}
+```
+
+#### Auto-Decryption
+The `getPurchaseDetails()` function in `src/lib/purchase/api.ts` automatically decrypts the address and stores it:
+```typescript
+// Decrypt and store in Zustand
+const decryptedAddress = decryptAes(result.hoopxWalletAddress);
+useHoopxWalletStore.getState().setHoopxAddress(decryptedAddress);
+```
+
+#### Usage
+Access the truncated HOOPX wallet address in any component:
+```typescript
+import { useHoopxWalletStore } from '@/lib/store/useHoopxWalletStore';
+
+const { truncatedHoopxAddress } = useHoopxWalletStore();
+// Returns: "CiC7...xZm1"
+```
+
+---
+
+## State Management
+
+### Zustand Stores
+
+#### 1. UI Store (`useUIStore`)
+Manages purchase page UI state:
+```typescript
+interface UIState {
+  selectedTier: number | null;
+  setSelectedTier: (tier: number) => void;
+}
+```
+
+#### 2. Wallet Store (`useWalletStore`)
+Manages connected user's wallet:
+```typescript
+interface WalletState {
+  address: string | null;
+  truncatedAddress: string | null;
+  setAddress: (address: string | null) => void;
+  clearAddress: () => void;
+}
+```
+Auto-synced with Solana wallet connection state.
+
+#### 3. HOOPX Wallet Store (`useHoopxWalletStore`)
+Stores the platform's receiving wallet address (decrypted from API):
+```typescript
+interface HoopxWalletState {
+  truncatedHoopxAddress: string | null;  // e.g., "CiC7...xZm1"
+  setHoopxAddress: (address: string | null) => void;
+  clearHoopxAddress: () => void;
+}
+```
+
+**Security Note**: Only stores truncated address (first 4 + last 4 characters) for display purposes. Full address is available in API response when needed for transactions.
