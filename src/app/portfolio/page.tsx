@@ -9,7 +9,6 @@ import Header from '@/components/header';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
 import { formatAddress, getExplorerUrl } from '@/lib/solana/transactions';
-import { IoArrowUpCircle } from 'react-icons/io5';
 
 export default function PortfolioPage() {
   const t = useTranslations('portfolio');
@@ -240,36 +239,28 @@ export default function PortfolioPage() {
                     className="block bg-white/10 rounded-2xl p-4 hover:bg-white/15 transition-colors"
                   >
                     <div className="flex items-center gap-3">
-                      {/* Status Icon */}
-                      <div className="flex-shrink-0 w-10 h-10 bg-purple-600/50 rounded-full flex items-center justify-center">
-                        <IoArrowUpCircle className="text-white text-xl" />
-                      </div>
+                      {/* Token Logo */}
+                      {transaction.tokenLogo ? (
+                        <Image
+                          src={transaction.tokenLogo}
+                          alt={transaction.tokenSymbol}
+                          width={48}
+                          height={48}
+                          className="w-12 h-12 rounded-full flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-xl font-bold">
+                            {transaction.tokenSymbol.charAt(0)}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Transaction Info */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          {transaction.tokenLogo ? (
-                            <Image
-                              src={transaction.tokenLogo}
-                              alt={transaction.tokenSymbol}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
-                              <span className="text-white text-[8px] font-bold">
-                                {transaction.tokenSymbol.charAt(0)}
-                              </span>
-                            </div>
-                          )}
-                          <span className="text-white font-medium text-sm">
-                            {transaction.tokenSymbol}
-                          </span>
-                          <span className="text-white/50 text-xs px-2 py-0.5 bg-white/10 rounded">
-                            {t('transferred')}
-                          </span>
-                        </div>
+                        <p className="text-white font-bold text-lg mb-1">
+                          {transaction.tokenSymbol}
+                        </p>
                         <p className="text-white/50 text-xs">
                           {t('to')}: {formatAddress(transaction.to)}
                         </p>
