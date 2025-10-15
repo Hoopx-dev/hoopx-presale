@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/header';
 import ConfirmationModal from '@/components/confirmation-modal';
 import TransactionStatusModal from '@/components/transaction-status-modal';
+import Toast, { ToastType } from '@/components/toast';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/solana/transfer';
@@ -28,6 +29,17 @@ export default function PurchasePage() {
   const [transactionStatus, setTransactionStatus] = useState<'sending' | 'success'>('sending');
   const [transactionId, setTransactionId] = useState<string>('');
   const [estimatedFee, setEstimatedFee] = useState(0.00001);
+
+  // Toast notification state
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<ToastType>('info');
+  const [showToast, setShowToast] = useState(false);
+
+  const showToastNotification = (message: string, type: ToastType) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
 
   // Redirect if not connected
   useEffect(() => {
@@ -100,7 +112,7 @@ export default function PurchasePage() {
   // Handle transaction confirmation
   const handleConfirmTransfer = async () => {
     if (!selectedTier || !publicKey || !signTransaction || !purchaseDetails?.hoopxWalletAddress) {
-      console.error('Missing required data for transfer');
+      showToastNotification('Missing required data for transfer', 'error');
       return;
     }
 
@@ -144,13 +156,22 @@ export default function PurchasePage() {
       // Show success status
       setTransactionStatus('success');
     } catch (error: any) {
-      console.error('Transaction failed:', error);
       // Close status modal on error (if it was opened)
       setShowStatusModal(false);
 
-      // Only show alert if it's not a user rejection
-      if (!error.message?.includes('User rejected') && !error.message?.includes('cancelled')) {
-        alert(`Transaction failed: ${error.message}`);
+      // Handle different error types with user-friendly messages
+      const errorMessage = error.message || 'Unknown error';
+
+      if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
+        // User cancelled transaction - show info toast
+        showToastNotification('Transaction cancelled', 'info');
+      } else if (errorMessage.includes('Insufficient')) {
+        showToastNotification('Insufficient balance to complete transaction', 'error');
+      } else if (errorMessage.includes('Network')) {
+        showToastNotification('Network error. Please try again', 'error');
+      } else {
+        // Generic error
+        showToastNotification('Transaction failed. Please try again', 'error');
       }
     }
   };
@@ -305,6 +326,14 @@ export default function PurchasePage() {
         amount={selectedTier || 0}
         transactionId={transactionId}
         onClose={() => setShowStatusModal(false)}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
       />
     </div>
   );

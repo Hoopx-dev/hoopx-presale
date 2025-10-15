@@ -124,7 +124,7 @@ export async function transferUSDT(
       success: true,
     };
   } catch (error: any) {
-    console.error('USDT transfer failed:', error);
+    // Return error without logging to keep console clean
     return {
       signature: '',
       success: false,
@@ -157,8 +157,7 @@ export async function getEstimatedFee(connection: Connection): Promise<number> {
 
     return baseFee + priorityFee;
   } catch (error) {
-    console.error('Failed to estimate fee:', error);
-    // Return fallback fee
+    // Return fallback fee silently
     return 0.00001;
   }
 }

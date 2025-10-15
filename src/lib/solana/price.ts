@@ -10,7 +10,7 @@ export async function getSolPrice(): Promise<number> {
     const data = await response.json();
     return data.solana?.usd || 150; // Fallback to $150 if API fails
   } catch (error) {
-    console.error('Failed to fetch SOL price:', error);
-    return 150; // Fallback price
+    // Return fallback price silently
+    return 150;
   }
 }
