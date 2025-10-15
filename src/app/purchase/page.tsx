@@ -3,20 +3,32 @@
 import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Connection } from '@solana/web3.js';
 import Header from '@/components/header';
-import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
+import ConfirmationModal from '@/components/confirmation-modal';
+import TransactionStatusModal from '@/components/transaction-status-modal';
+import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { transferUSDT, getEstimatedFee } from '@/lib/solana/transfer';
 import { IoCheckmarkCircle } from 'react-icons/io5';
 
 export default function PurchasePage() {
   const t = useTranslations('purchase');
   const tPresale = useTranslations('presale');
   const router = useRouter();
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, signTransaction } = useWallet();
   const { data: purchaseDetails, isLoading: detailsLoading } = usePurchaseDetails();
-  const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
+  const { data: purchaseSession, isLoading: sessionLoading } = usePurchaseSession(publicKey?.toBase58());
   const { selectedTier, setSelectedTier } = useUIStore();
+  const registerMutation = useRegisterPurchase();
+
+  // Modal states
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [transactionStatus, setTransactionStatus] = useState<'sending' | 'success'>('sending');
+  const [transactionId, setTransactionId] = useState<string>('');
+  const [estimatedFee, setEstimatedFee] = useState(0.00001);
 
   // Redirect if not connected
   useEffect(() => {
@@ -24,6 +36,21 @@ export default function PurchasePage() {
       router.push('/');
     }
   }, [connected, router]);
+
+  // Redirect if already purchased
+  useEffect(() => {
+    if (!sessionLoading && purchaseSession?.purchaseStatus === 1) {
+      router.push('/portfolio');
+    }
+  }, [purchaseSession, sessionLoading, router]);
+
+  // Get estimated fee
+  useEffect(() => {
+    if (connected) {
+      const connection = new Connection('https://api.mainnet-beta.solana.com');
+      getEstimatedFee(connection).then(setEstimatedFee);
+    }
+  }, [connected]);
 
   // Calculate HOOPX amount based on selected tier and rate
   const hoopxAmount = useMemo(() => {
@@ -56,9 +83,74 @@ export default function PurchasePage() {
       : purchaseDetails.rate.toString();
   }, [purchaseDetails?.rate]);
 
+  const rateNumber = useMemo(() => {
+    if (!purchaseDetails?.rate) return 0.003;
+    return typeof purchaseDetails.rate === 'string'
+      ? parseFloat(purchaseDetails.rate)
+      : purchaseDetails.rate;
+  }, [purchaseDetails?.rate]);
+
   const maxTier = Math.max(...tiers);
 
-  if (!connected) {
+  // Handle buy button click
+  const handleBuyClick = () => {
+    if (!selectedTier || alreadyPurchased) return;
+    setShowConfirmModal(true);
+  };
+
+  // Handle transaction confirmation
+  const handleConfirmTransfer = async () => {
+    if (!selectedTier || !publicKey || !signTransaction || !purchaseDetails?.hoopxWalletAddress) {
+      console.error('Missing required data for transfer');
+      return;
+    }
+
+    try {
+      // Close confirmation modal
+      setShowConfirmModal(false);
+
+      // Show sending status
+      setTransactionStatus('sending');
+      setShowStatusModal(true);
+
+      // Create connection
+      const connection = new Connection('https://api.mainnet-beta.solana.com');
+
+      // Execute transfer
+      const result = await transferUSDT(
+        connection,
+        publicKey,
+        purchaseDetails.hoopxWalletAddress,
+        selectedTier,
+        signTransaction
+      );
+
+      if (!result.success) {
+        throw new Error(result.error || 'Transfer failed');
+      }
+
+      // Store transaction ID
+      setTransactionId(result.signature);
+
+      // Register purchase in backend
+      await registerMutation.mutateAsync({
+        publicKey: publicKey.toBase58(),
+        amount: selectedTier,
+        trxId: result.signature,
+        activityId: purchaseDetails.activityId,
+      });
+
+      // Show success status
+      setTransactionStatus('success');
+    } catch (error: any) {
+      console.error('Transaction failed:', error);
+      // Close status modal on error
+      setShowStatusModal(false);
+      alert(`Transaction failed: ${error.message}`);
+    }
+  };
+
+  if (!connected || alreadyPurchased) {
     return null; // Will redirect
   }
 
@@ -96,15 +188,6 @@ export default function PurchasePage() {
               </button>
             ))}
           </div>
-
-          {/* Already Purchased Warning */}
-          {alreadyPurchased && (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4 mb-6">
-              <p className="text-red-300 text-sm text-center">
-                {t('alreadyPurchased')}
-              </p>
-            </div>
-          )}
 
           {/* Summary Cards */}
           <div className="space-y-3 mb-6">
@@ -177,6 +260,7 @@ export default function PurchasePage() {
 
           {/* Buy Button */}
           <button
+            onClick={handleBuyClick}
             disabled={!selectedTier || alreadyPurchased || detailsLoading}
             className={`
               w-full py-5 px-6 rounded-2xl font-bold text-xl transition-all duration-200
@@ -198,6 +282,25 @@ export default function PurchasePage() {
           </p>
         </main>
       </div>
+
+      {/* Modals */}
+      <ConfirmationModal
+        isOpen={showConfirmModal}
+        amount={selectedTier || 0}
+        hoopxAmount={hoopxAmount}
+        rate={rateNumber}
+        estimatedFee={estimatedFee}
+        onConfirm={handleConfirmTransfer}
+        onClose={() => setShowConfirmModal(false)}
+      />
+
+      <TransactionStatusModal
+        isOpen={showStatusModal}
+        status={transactionStatus}
+        amount={selectedTier || 0}
+        transactionId={transactionId}
+        onClose={() => setShowStatusModal(false)}
+      />
     </div>
   );
 }

@@ -7,29 +7,39 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect, useRef } from 'react';
 import Header from '@/components/header';
-import { usePurchaseDetails } from '@/lib/purchase/hooks';
+import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 
 export default function Home() {
   const t = useTranslations('home');
   const router = useRouter();
-  const { connected } = useWallet();
+  const { connected, publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
+  const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
   const shouldRedirect = useRef(false);
 
-  // Redirect to purchase page after wallet connects
+  // Redirect to purchase or portfolio page after wallet connects
   useEffect(() => {
     if (connected && shouldRedirect.current) {
-      router.push('/purchase');
+      // Check if wallet already purchased
+      if (purchaseSession?.purchaseStatus === 1) {
+        router.push('/portfolio');
+      } else {
+        router.push('/purchase');
+      }
       shouldRedirect.current = false;
     }
-  }, [connected, router]);
+  }, [connected, purchaseSession, router]);
 
   // Handle buy button click
   const handleBuyClick = () => {
     if (connected) {
-      // Already connected, go to purchase page
-      router.push('/purchase');
+      // Already connected, check if purchased
+      if (purchaseSession?.purchaseStatus === 1) {
+        router.push('/portfolio');
+      } else {
+        router.push('/purchase');
+      }
     } else {
       // Not connected, trigger wallet modal and set redirect flag
       shouldRedirect.current = true;
