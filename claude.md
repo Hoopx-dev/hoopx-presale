@@ -601,8 +601,8 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Axios HTTP client with interceptors (request/response logging)
   - [x] React Query (@tanstack/react-query) setup with custom configuration
   - [x] TypeScript interfaces for all API endpoints (types.ts)
-  - [x] API functions for all 3 endpoints (api.ts)
-  - [x] React Query hooks (usePurchaseDetails, usePurchaseSession, useRegisterPurchase)
+  - [x] API functions for all 4 endpoints (api.ts)
+  - [x] React Query hooks (usePurchaseDetails, usePurchaseSession, useRegisterPurchase, useTerms)
   - [x] Zustand store for local purchase state (selectedTier, walletAddress)
   - [x] Query key factory (queryKeys.ts) for cache management
   - [x] Environment configuration (.env.local with API_BASE_URL)
@@ -638,46 +638,100 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Automatic decryption in getPurchaseDetails API
   - [x] useHoopxWalletStore for truncated HOOPX wallet address
   - [x] Console logging for debugging encrypted/decrypted values
+- [x] **Solana RPC Configuration**
+  - [x] Helius RPC provider integration (https://mainnet.helius-rpc.com)
+  - [x] Environment variable configuration (NEXT_PUBLIC_SOLANA_RPC_URL)
+  - [x] Configurable RPC URL in transfer.ts
+  - [x] Resolved 403 rate limiting issues
+- [x] **USDT Transfer Implementation**
+  - [x] SPL token transfer functionality
+  - [x] USDT token account validation
+  - [x] Sender balance checking before transaction
+  - [x] Associated token account creation handling
+  - [x] Transaction fee estimation with account creation costs
+  - [x] Proper error handling with user-friendly messages
+  - [x] Silent error handling (no console pollution)
+- [x] **Transaction Flow**
+  - [x] Confirmation modal with transaction review
+  - [x] Real-time SOL price fetching from CoinGecko
+  - [x] Accurate fee display (USD and SOL)
+  - [x] Proper modal sequencing (wallet sign → then sending modal)
+  - [x] Transaction status modal (sending/success states)
+  - [x] Portfolio redirect after successful purchase
+- [x] **Error Handling & UX**
+  - [x] Toast notification system (success, error, info, warning)
+  - [x] Auto-dismiss after 4 seconds
+  - [x] Specific error messages for different scenarios:
+    - User cancellation (info toast)
+    - No USDT account (error toast)
+    - Insufficient balance with actual amounts (error toast)
+    - Network errors (error toast)
+  - [x] Wallet signing error suppression
+  - [x] Graceful fallbacks for API failures
+- [x] **Terms & Conditions**
+  - [x] Terms modal component with markdown support
+  - [x] 10-second countdown timer on continue button
+  - [x] localStorage persistence for acceptance
+  - [x] Auto-display on first visit to purchase page
+  - [x] GET /api/purchase/terms endpoint integration
+  - [x] useTerms() React Query hook
+- [x] **Portfolio Page (/portfolio)**
+  - [x] Total HOOPX assets display
+  - [x] Purchase details card with transaction info
+  - [x] Vesting schedule information
+  - [x] Purchase time and status
+  - [x] Auto-redirect if no purchase exists
+- [x] **Production Build**
+  - [x] Fixed all ESLint errors (@typescript-eslint/no-explicit-any)
+  - [x] Fixed all TypeScript type errors
+  - [x] Removed unused variables and imports
+  - [x] Updated deprecated React Query options (cacheTime → gcTime)
+  - [x] Production build passes all checks
+  - [x] Optimized bundle sizes (325-345 KB per page)
 
 ### 🚧 To Be Implemented
-- [ ] Terms and conditions modal
-- [ ] Transaction confirmation flow
-- [ ] USDT transfer to HOOPX wallet implementation
-- [ ] Portfolio/dashboard view
 - [ ] Jupiter Lock integration for viewing locked tokens
-- [ ] Token claiming functionality
-- [ ] Enhanced error handling and loading states
-- [ ] Transaction status tracking and notifications
+- [ ] Token claiming functionality post-vesting
+- [ ] Transaction history view on portfolio page
+- [ ] Enhanced loading skeletons
+- [ ] Error boundary implementation
+- [ ] Wallet disconnection handling improvements
+- [ ] Mobile deep linking optimization
+- [ ] Progressive Web App (PWA) features
 
 ### 📝 Next Steps
-1. **Transaction Processing**
-   - Implement USDT transfer to HOOPX wallet
-   - Integrate Solana transaction signing
-   - Handle transaction confirmation
-   - Call registerPurchase hook after successful blockchain transaction
-   - Show success/error notifications
-
-2. **Terms and Conditions**
-   - Create terms modal component
-   - Implement 10-second wait timer
-   - Add acceptance checkbox
-
-3. **Portfolio Dashboard**
-   - Create portfolio page
-   - Use usePurchaseSession hook to fetch user data
-   - Display purchase history and status
-   - Show vesting schedule and claimable amounts
-
-4. **Jupiter Lock Integration**
+1. **Jupiter Lock Integration**
    - Research Jupiter Lock API/SDK
    - Implement lock viewing functionality
    - Add claim button when cliff period ends
+   - Display claimable vs locked amounts
+   - Show vesting progress bar
 
-5. **Enhanced UX**
-   - Add loading states and skeletons
-   - Implement error boundaries
-   - Add transaction status notifications
-   - Optimize mobile responsiveness
+2. **Enhanced UX**
+   - Add loading skeletons for data fetching states
+   - Implement error boundaries for graceful error handling
+   - Add transaction history timeline on portfolio page
+   - Optimize animations and transitions
+   - Improve mobile responsiveness for various screen sizes
+
+3. **Testing & QA**
+   - Test with various wallet providers (Phantom, Solflare, Backpack)
+   - Test edge cases (insufficient balance, network errors, etc.)
+   - Verify all translations are complete
+   - Test on multiple mobile devices
+   - Verify transaction flow end-to-end
+
+4. **Performance Optimization**
+   - Implement code splitting for better load times
+   - Optimize images and assets
+   - Add service worker for offline support
+   - Monitor and optimize bundle sizes
+
+5. **Documentation**
+   - Add inline code comments
+   - Create user guide
+   - Document deployment process
+   - Add troubleshooting guide
 
 ---
 
@@ -771,3 +825,362 @@ interface HoopxWalletState {
 ```
 
 **Security Note**: Only stores truncated address (first 4 + last 4 characters) for display purposes. Full address is available in API response when needed for transactions.
+
+---
+
+## Key Components
+
+### Toast Notification System (`src/components/toast.tsx`)
+
+A reusable toast notification component for user feedback.
+
+**Features:**
+- 4 types: `success`, `error`, `info`, `warning`
+- Auto-dismiss after configurable duration (default 4 seconds)
+- Color-coded styling with icons
+- Slide-down animation from top center
+- Non-blocking UX
+
+**Usage:**
+```tsx
+import Toast, { ToastType } from '@/components/toast';
+
+const [toastMessage, setToastMessage] = useState('');
+const [toastType, setToastType] = useState<ToastType>('info');
+const [showToast, setShowToast] = useState(false);
+
+const showToastNotification = (message: string, type: ToastType) => {
+  setToastMessage(message);
+  setToastType(type);
+  setShowToast(true);
+};
+
+// Use in JSX
+<Toast
+  message={toastMessage}
+  type={toastType}
+  isVisible={showToast}
+  onClose={() => setShowToast(false)}
+/>
+
+// Trigger
+showToastNotification('Transaction cancelled', 'info');
+showToastNotification('Insufficient balance', 'error');
+```
+
+### Terms Modal (`src/components/terms-modal.tsx`)
+
+Modal displaying terms and conditions with mandatory 10-second wait period.
+
+**Features:**
+- Fetches terms from `GET /api/purchase/terms` via `useTerms()` hook
+- 10-second countdown timer (继续 (10) → 继续 (0) → 继续)
+- Button disabled during countdown
+- Markdown content rendering with whitespace preservation
+- localStorage persistence (`hoopx-terms-accepted`)
+- Auto-display on first visit to purchase page
+- Scrollable content area with loading state
+
+**Flow:**
+1. User enters purchase page for first time
+2. Modal appears with terms content
+3. Continue button shows countdown: "继续 (10)"
+4. After 10 seconds, button becomes active: "继续"
+5. User clicks to accept
+6. Acceptance stored in localStorage
+7. Modal won't show again on subsequent visits
+
+### Confirmation Modal (`src/components/confirmation-modal.tsx`)
+
+Transaction review modal before wallet signing.
+
+**Features:**
+- USDT amount display with icon
+- Destination address (HOOPX wallet, truncated)
+- Exchange rate (1 HOOPX = X USDT)
+- Real-time transaction fee in USD and SOL
+- Fetches current SOL price from CoinGecko
+- Mobile-first design with slide-up animation
+- Prevents body scroll when open
+
+**Props:**
+```typescript
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  amount: number;           // USDT amount
+  rate: number;            // Exchange rate
+  estimatedFee: number;    // Fee in SOL
+  onConfirm: () => void;   // Triggers transaction
+  onClose: () => void;     // Cancel action
+}
+```
+
+### Transaction Status Modal (`src/components/transaction-status-modal.tsx`)
+
+Displays transaction progress and results.
+
+**States:**
+- `sending`: Transaction being processed on blockchain
+- `success`: Transaction confirmed successfully
+
+**Features:**
+- Animated icons (loading spinner / success checkmark)
+- Amount display
+- Solana Explorer link with transaction ID
+- Auto-redirect to portfolio after 2 seconds on success
+- Prevents body scroll when open
+
+### USDT Transfer System (`src/lib/solana/transfer.ts`)
+
+Core Solana blockchain transaction functionality.
+
+**Key Functions:**
+
+#### `transferUSDT()`
+Executes SPL token transfer from user to HOOPX wallet.
+
+**Features:**
+- Validates sender has USDT token account
+- Checks sender balance before transaction
+- Creates recipient token account if needed
+- Handles wallet signing with error suppression
+- Returns structured result: `{ signature, success, error }`
+
+**Error Handling:**
+```typescript
+// No USDT account
+{ success: false, error: 'You do not have a USDT account. Please acquire USDT first.' }
+
+// Insufficient balance
+{ success: false, error: 'Insufficient USDT balance. You have 50 USDT but need 1000 USDT.' }
+
+// User rejected
+{ success: false, error: 'User rejected the request.' }
+
+// Success
+{ success: true, signature: 'txid...', error: undefined }
+```
+
+#### `getEstimatedFee()`
+Calculates total transaction fee including all costs.
+
+**Calculates:**
+- Base transaction fee (~0.000005 SOL)
+- Priority fee (from `getRecentPrioritizationFees()`)
+- Account creation fee (~0.00204428 SOL if recipient needs token account)
+
+**Returns:** Total fee in SOL
+
+#### `getSolPrice()`
+Fetches current SOL price from CoinGecko API.
+
+**Features:**
+- Fallback to $150 if API fails
+- Silent error handling
+- Used for USD fee display
+
+**Environment Variables:**
+```env
+NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_KEY
+```
+
+### Transaction Flow Architecture
+
+The purchase flow follows a strict sequence for optimal UX:
+
+**Step 1: User Review**
+```tsx
+// User clicks "Buy - 1000 USDT"
+handleBuyClick() {
+  setShowConfirmModal(true); // Show confirmation modal
+}
+```
+
+**Step 2: User Confirms in App**
+```tsx
+// User clicks "Confirm Transfer" in modal
+handleConfirmTransfer() {
+  setShowConfirmModal(false); // Close app modal
+
+  // Wallet will open automatically
+  const result = await transferUSDT(...);
+
+  // If user cancels in wallet, result.success = false
+  if (!result.success) {
+    throw new Error(result.error);
+  }
+
+  // Transaction signed! NOW show sending status
+  setShowStatusModal(true);
+  setTransactionStatus('sending');
+
+  // Register on backend
+  await registerPurchase(...);
+
+  // Show success
+  setTransactionStatus('success');
+}
+```
+
+**Error Handling:**
+```tsx
+catch (error: unknown) {
+  setShowStatusModal(false); // Close sending modal
+
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+  if (errorMessage.includes('User rejected')) {
+    showToastNotification('Transaction cancelled', 'info');
+  } else if (errorMessage.includes('Insufficient')) {
+    showToastNotification(errorMessage, 'error');
+  } else {
+    showToastNotification('Transaction failed', 'error');
+  }
+}
+```
+
+**Why This Sequence?**
+1. **No stuck modals**: Sending modal only appears AFTER wallet signing
+2. **Clear feedback**: User sees wallet → then app confirms it's sending
+3. **Graceful cancellation**: If user cancels in wallet, app shows info toast (not error)
+4. **No console pollution**: All errors handled via toast notifications
+
+---
+
+## Environment Variables
+
+Complete list of required environment variables in `.env.local`:
+
+```env
+# API Configuration
+NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
+
+# AES Encryption Keys
+NEXT_PUBLIC_AES_KEY=9rDwYuLr+WvuC8OnfBfCbg==
+NEXT_PUBLIC_AES_IV=l8RvOT8Vgfp6zyBxKY7Hxw==
+
+# Solana RPC Configuration
+NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_API_KEY
+```
+
+**RPC Provider Options:**
+- **Helius** (Recommended): 100k requests/day free tier
+- **QuickNode**: Scalable with analytics
+- **Alchemy**: Similar features to Helius
+- **Public RPC** (Not recommended): Rate limited, unreliable
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Issue: Transaction fails with "403 Forbidden"**
+- **Cause**: Public Solana RPC rate limiting
+- **Solution**: Configure Helius or other paid RPC in `NEXT_PUBLIC_SOLANA_RPC_URL`
+
+**Issue: "Simulation failed" in wallet**
+- **Cause**: User doesn't have USDT token account
+- **Solution**: App now validates before transaction and shows clear error
+
+**Issue: Fee display doesn't match wallet**
+- **Cause**: Not including account creation fee
+- **Solution**: Fixed - `getEstimatedFee()` now includes all costs
+
+**Issue: Sending modal appears then gets stuck when canceling**
+- **Cause**: Modal showed before wallet signing
+- **Solution**: Fixed - modal only appears AFTER successful wallet signing
+
+**Issue: Red console errors on wallet cancellation**
+- **Cause**: Unhandled `WalletSignTransactionError`
+- **Solution**: Fixed - dedicated try-catch around `signTransaction()`
+
+**Issue: Build fails with ESLint errors**
+- **Cause**: Using `any` types, unused variables
+- **Solution**: All fixed - using `unknown` with type guards, removed unused code
+
+---
+
+## API Endpoint Documentation (Extended)
+
+### 4. Get Terms and Conditions
+**GET** `/api/purchase/terms`
+
+Retrieves the terms and conditions content in markdown format.
+
+**Headers:**
+```
+Accept: text/markdown
+```
+
+**Response** (200 - plain text):
+```markdown
+# HOOPX Token Purchase Terms
+
+1. You must hold HOOPX tokens...
+2. Vesting schedule is non-negotiable...
+...
+```
+
+**React Query Hook:**
+```typescript
+const { data: termsMarkdown, isLoading } = useTerms(true);
+```
+
+---
+
+## Project File Structure (Updated)
+
+```
+hoopx-presale/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx              # Root layout with all providers
+│   │   ├── page.tsx                # Homepage with exchange rate
+│   │   ├── purchase/
+│   │   │   └── page.tsx            # Purchase flow with modals
+│   │   ├── portfolio/
+│   │   │   └── page.tsx            # User portfolio view
+│   │   └── globals.css
+│   ├── components/
+│   │   ├── header.tsx              # App header
+│   │   ├── wallet-button.tsx       # Wallet connection
+│   │   ├── toast.tsx               # Toast notifications (NEW)
+│   │   ├── terms-modal.tsx         # Terms & conditions (NEW)
+│   │   ├── confirmation-modal.tsx  # Transaction review (NEW)
+│   │   ├── transaction-status-modal.tsx  # TX status (NEW)
+│   │   ├── wallet-provider.tsx     # Solana wallet context
+│   │   ├── locale-provider.tsx     # i18n provider
+│   │   └── providers.tsx           # React Query wrapper
+│   ├── lib/
+│   │   ├── http.ts                 # Axios client
+│   │   ├── queryKeys.ts            # Query key factory
+│   │   ├── crypto/
+│   │   │   └── decrypt.ts          # AES decryption
+│   │   ├── purchase/
+│   │   │   ├── types.ts            # API types
+│   │   │   ├── api.ts              # API functions (4 endpoints)
+│   │   │   └── hooks.ts            # React Query hooks
+│   │   ├── solana/
+│   │   │   ├── transfer.ts         # USDT transfer logic (NEW)
+│   │   │   └── price.ts            # SOL price fetcher (NEW)
+│   │   └── store/
+│   │       ├── useUIStore.ts       # UI state
+│   │       ├── useWalletStore.ts   # User wallet
+│   │       └── useHoopxWalletStore.ts  # Platform wallet
+│   └── i18n/
+│       ├── config.ts               # Locale config
+│       └── locales/
+│           ├── en.json             # English
+│           └── cn.json             # Chinese
+├── public/
+│   └── images/
+│       ├── coin.png                # HOOPX coin
+│       ├── brand-logo.png          # HOOPX logo
+│       └── usdt.png                # USDT icon
+├── .env.local                      # Environment variables
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+└── claude.md                       # This file
+```
