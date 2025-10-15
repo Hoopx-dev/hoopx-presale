@@ -687,7 +687,12 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Removed unused variables and imports
   - [x] Updated deprecated React Query options (cacheTime → gcTime)
   - [x] Production build passes all checks
-  - [x] Optimized bundle sizes (325-345 KB per page)
+  - [x] Optimized bundle sizes (325-346 KB per page)
+- [x] **Environment Management**
+  - [x] Staging watermark component
+  - [x] NEXT_PUBLIC_IS_STAGING environment flag
+  - [x] Visual indicator for staging/development deployments
+  - [x] Automatic show/hide based on environment
 
 ### 🚧 To Be Implemented
 - [ ] Jupiter Lock integration for viewing locked tokens
@@ -867,6 +872,52 @@ const showToastNotification = (message: string, type: ToastType) => {
 showToastNotification('Transaction cancelled', 'info');
 showToastNotification('Insufficient balance', 'error');
 ```
+
+### Staging Watermark (`src/components/staging-watermark.tsx`)
+
+Environment indicator displayed on all pages in staging/development environments.
+
+**Features:**
+- Only appears when `NEXT_PUBLIC_IS_STAGING=true`
+- Fixed positioning at bottom left
+- Yellow warning badge with ⚠️ icon
+- Non-interactive (pointer-events: none)
+- High z-index (9999) to appear above all content
+- Added to root layout so it appears on every page
+
+**Usage:**
+```tsx
+// In src/app/layout.tsx
+import StagingWatermark from '@/components/staging-watermark';
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        <Providers>
+          <LocaleProvider>{children}</LocaleProvider>
+        </Providers>
+        <StagingWatermark />
+      </body>
+    </html>
+  );
+}
+```
+
+**Environment Configuration:**
+```env
+# .env.local for staging
+NEXT_PUBLIC_IS_STAGING=true
+
+# .env.local for production
+NEXT_PUBLIC_IS_STAGING=false
+```
+
+**Visual Appearance:**
+- Yellow background with black text
+- Displays: "⚠️ Staging Environment"
+- Bold, uppercase lettering
+- Rounded corners with shadow
 
 ### Terms Modal (`src/components/terms-modal.tsx`)
 
@@ -1052,6 +1103,9 @@ catch (error: unknown) {
 Complete list of required environment variables in `.env.local`:
 
 ```env
+# Environment Configuration
+NEXT_PUBLIC_IS_STAGING=true
+
 # API Configuration
 NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
 
@@ -1062,6 +1116,9 @@ NEXT_PUBLIC_AES_IV=l8RvOT8Vgfp6zyBxKY7Hxw==
 # Solana RPC Configuration
 NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_API_KEY
 ```
+
+**Environment Flags:**
+- **NEXT_PUBLIC_IS_STAGING**: Set to `true` for staging/development environments to show staging watermark. Set to `false` for production to hide the watermark.
 
 **RPC Provider Options:**
 - **Helius** (Recommended): 100k requests/day free tier
@@ -1145,10 +1202,11 @@ hoopx-presale/
 │   ├── components/
 │   │   ├── header.tsx              # App header
 │   │   ├── wallet-button.tsx       # Wallet connection
-│   │   ├── toast.tsx               # Toast notifications (NEW)
-│   │   ├── terms-modal.tsx         # Terms & conditions (NEW)
-│   │   ├── confirmation-modal.tsx  # Transaction review (NEW)
-│   │   ├── transaction-status-modal.tsx  # TX status (NEW)
+│   │   ├── toast.tsx               # Toast notifications
+│   │   ├── staging-watermark.tsx   # Environment indicator
+│   │   ├── terms-modal.tsx         # Terms & conditions
+│   │   ├── confirmation-modal.tsx  # Transaction review
+│   │   ├── transaction-status-modal.tsx  # TX status
 │   │   ├── wallet-provider.tsx     # Solana wallet context
 │   │   ├── locale-provider.tsx     # i18n provider
 │   │   └── providers.tsx           # React Query wrapper
