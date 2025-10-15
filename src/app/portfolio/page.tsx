@@ -5,6 +5,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { FiArrowUpRight } from 'react-icons/fi';
 import Header from '@/components/header';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
@@ -117,7 +118,7 @@ export default function PortfolioPage() {
           <div className="flex border-b border-white/20 mb-6">
             <button
               onClick={() => setActiveTab('purchase')}
-              className={`flex-1 pb-3 font-medium transition-colors ${
+              className={`flex-1 pb-3 font-medium transition-colors cursor-pointer ${
                 activeTab === 'purchase'
                   ? 'text-white border-b-2 border-yellow-500'
                   : 'text-white/50'
@@ -127,7 +128,7 @@ export default function PortfolioPage() {
             </button>
             <button
               onClick={() => setActiveTab('transactions')}
-              className={`flex-1 pb-3 font-medium transition-colors ${
+              className={`flex-1 pb-3 font-medium transition-colors cursor-pointer ${
                 activeTab === 'transactions'
                   ? 'text-white border-b-2 border-yellow-500'
                   : 'text-white/50'
@@ -238,6 +239,18 @@ export default function PortfolioPage() {
                     rel="noopener noreferrer"
                     className="block bg-white/10 rounded-2xl p-4 hover:bg-white/15 transition-colors"
                   >
+                    {/* Top row: Status and Time */}
+                    <div className="flex justify-between items-center mb-3">
+                      <div className="flex items-center gap-1 bg-purple-900/60 rounded-full px-3 py-1">
+                        <FiArrowUpRight className="w-3 h-3 text-green-400" />
+                        <span className="text-green-400 text-xs">{t('transferred')}</span>
+                      </div>
+                      <span className="text-white/50 text-xs">
+                        {formatTime(transaction.timestamp)}
+                      </span>
+                    </div>
+
+                    {/* Bottom row: Logo, Info, Amount */}
                     <div className="flex items-center gap-3">
                       {/* Token Logo */}
                       {transaction.tokenLogo ? (
@@ -266,13 +279,10 @@ export default function PortfolioPage() {
                         </p>
                       </div>
 
-                      {/* Amount and Time */}
+                      {/* Amount */}
                       <div className="text-right flex-shrink-0">
-                        <p className="text-red-400 font-bold text-base mb-1">
+                        <p className="text-red-400 font-bold text-base">
                           -{formatNumber(transaction.amount)} {transaction.tokenSymbol}
-                        </p>
-                        <p className="text-white/50 text-xs">
-                          {formatTime(transaction.timestamp)}
                         </p>
                       </div>
                     </div>

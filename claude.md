@@ -681,6 +681,16 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Vesting schedule information
   - [x] Purchase time and status
   - [x] Auto-redirect if no purchase exists
+  - [x] Two-tab interface: Purchase Details & Transfer Records
+  - [x] Transaction history display with blockchain data
+  - [x] Single transaction query by trxId (avoids rate limits)
+  - [x] Dynamic token metadata extraction from blockchain
+  - [x] Token logo display using local assets
+  - [x] Wallet address extraction from token balances
+  - [x] Transaction card with status badge and timestamp
+  - [x] Solana Explorer links for verification
+  - [x] Date grouping (Today/Yesterday/Date)
+  - [x] Green status indicator for successful transfers
 - [x] **Production Build**
   - [x] Fixed all ESLint errors (@typescript-eslint/no-explicit-any)
   - [x] Fixed all TypeScript type errors
@@ -1164,6 +1174,195 @@ catch (error: unknown) {
 2. **Clear feedback**: User sees wallet → then app confirms it's sending
 3. **Graceful cancellation**: If user cancels in wallet, app shows info toast (not error)
 4. **No console pollution**: All errors handled via toast notifications
+
+---
+
+## Transaction History Implementation
+
+### Overview
+The portfolio page includes a transaction history feature that displays blockchain transaction details by querying Solana directly using the transaction ID stored in the purchase session.
+
+### Architecture
+
+#### File Structure
+```
+src/
+├── app/
+│   └── portfolio/
+│       └── page.tsx              # Portfolio with two tabs
+├── lib/
+│   └── solana/
+│       ├── transactions.ts       # Transaction parsing logic
+│       └── hooks.ts              # React Query hooks for transactions
+```
+
+#### Key Components
+
+**1. Transaction Query (`src/lib/solana/transactions.ts`)**
+
+Fetches and parses Solana transactions to extract token transfer details.
+
+**Key Function: `fetchTransactionBySignature(signature: string)`**
+```typescript
+// Fetches a single transaction by signature
+// Returns: TransactionInfo | null
+{
+  signature: string;
+  timestamp: number;
+  amount: number;
+  from: string;        // Wallet address (not token account)
+  to: string;          // Wallet address (not token account)
+  status: "success" | "failed";
+  tokenSymbol: string; // e.g., "USDT"
+  tokenName?: string;  // e.g., "Tether USD"
+  tokenMint?: string;  // SPL token mint address
+  tokenLogo?: string;  // Path to local image
+}
+```
+
+**Key Function: `parseTokenTransfer(tx: ParsedTransactionWithMeta)`**
+
+Extracts SPL token transfer details from parsed transaction:
+
+1. **Finds Transfer Instructions**: Searches for `transfer` or `transferChecked` instructions
+2. **Extracts Amount**: Uses `uiAmount` or converts from lamports with decimals
+3. **Gets Wallet Addresses**: Maps token accounts to wallet owners using `preTokenBalances` and `postTokenBalances`
+4. **Extracts Token Metadata**: Finds mint address and looks up known tokens
+5. **Returns Transfer Info**: Amount, from/to addresses, token details
+
+**Known Token Registry**
+```typescript
+const knownTokens = {
+  "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": {
+    symbol: "USDT",
+    name: "Tether USD",
+    logo: "/images/usdt-badge.png",
+  },
+  "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": {
+    symbol: "USDC",
+    name: "USD Coin",
+    logo: "/images/usdc.png",
+  },
+};
+```
+
+**2. React Query Hook (`src/lib/solana/hooks.ts`)**
+
+```typescript
+export function useTransaction(signature?: string) {
+  return useQuery({
+    queryKey: ['transaction', signature],
+    queryFn: async () => {
+      if (!signature) return null;
+      return fetchTransactionBySignature(signature);
+    },
+    enabled: !!signature,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: 1000,
+  });
+}
+```
+
+**3. Portfolio Page Implementation (`src/app/portfolio/page.tsx`)**
+
+**Two-Tab Interface:**
+- **Purchase Details**: Shows HOOPX balance, vesting schedule, purchase info
+- **Transfer Records**: Displays blockchain transaction history
+
+**Transaction Display Features:**
+- **Status Badge**: Green pill with arrow icon (↗ 已转账)
+- **Timestamp**: Formatted as HH:MM AM/PM
+- **Date Grouping**: "Today" / "Yesterday" / "Jan 15, 2025"
+- **Token Logo**: 48x48px circular image
+- **Amount Display**: Red text showing outgoing transfer (-2000 USDT)
+- **Recipient Address**: Truncated format (CiC7...xZm1)
+- **Explorer Link**: Clickable card linking to Solscan
+
+### Technical Challenges & Solutions
+
+#### Challenge 1: Rate Limiting (429 Errors)
+**Problem**: Scanning all wallet transactions caused RPC rate limits
+**Solution**: Query only the specific transaction by trxId from purchase session
+
+#### Challenge 2: Token Account vs Wallet Address
+**Problem**: SPL token transfers use Associated Token Accounts, not wallet addresses
+**Solution**: Extract wallet owner addresses from `preTokenBalances` and `postTokenBalances` metadata
+
+#### Challenge 3: Dynamic Token Metadata
+**Problem**: Hardcoding token symbols and logos isn't scalable
+**Solution**:
+- Extract mint address from transaction
+- Lookup token details in known tokens registry
+- Use local image assets for logos
+
+#### Challenge 4: Token Logo Display
+**Problem**: External URLs for token logos may fail or be blocked
+**Solution**: Store token logos in `/public/images/` and use local paths
+
+### Transaction Card Layout
+
+```
+┌─────────────────────────────────────────┐
+│ ↗ 已转账          05:59 PM              │ ← Status badge & time
+├─────────────────────────────────────────┤
+│ [USDT]  USDT                  -2000 USDT│ ← Logo, symbol, amount
+│ 🔵      To: CiC7...xZm1                 │ ← Recipient address
+└─────────────────────────────────────────┘
+```
+
+### Solana Transaction Parsing
+
+**Understanding SPL Token Transfers:**
+
+1. **Token Accounts**: Each wallet has an Associated Token Account (ATA) for each token type
+2. **Transfer Flow**: Token → ATA (sender) → ATA (recipient) → Wallet (owner)
+3. **Transaction Structure**:
+   - `instructions[]`: Contains transfer instruction
+   - `preTokenBalances[]`: Token account states before transaction
+   - `postTokenBalances[]`: Token account states after transaction
+
+**Extracting Wallet Addresses:**
+```typescript
+// Source token account from instruction
+const source = info.source;
+
+// Find wallet owner from token balances
+const sourceBalance = preBalances.find(
+  (b) => accountKeys[b.accountIndex]?.pubkey.toBase58() === source
+);
+
+const fromAddress = sourceBalance?.owner || source; // Wallet address
+```
+
+### Helper Functions
+
+**`formatAddress(address: string)`**
+Truncates wallet addresses for display: `CiC7nF...pFxZm1`
+
+**`getExplorerUrl(signature: string)`**
+Returns Solscan URL with correct network (mainnet/devnet):
+```typescript
+const network = isStaging ? "devnet" : "mainnet-beta";
+return `https://solscan.io/tx/${signature}?cluster=${network}`;
+```
+
+### Best Practices
+
+1. **Single Transaction Query**: Only fetch what's needed to avoid rate limits
+2. **Local Assets**: Use `/public/images/` for token logos
+3. **Wallet Addresses**: Always extract from token balance metadata, not instruction
+4. **Error Handling**: Show loading/empty states gracefully
+5. **Caching**: Use React Query with 5-minute stale time
+6. **Retry Logic**: 3 retries with 1-second delay for RPC failures
+
+### Future Enhancements
+
+- [ ] Multiple transaction support (transaction list)
+- [ ] Pagination for long transaction histories
+- [ ] Filter by date range or token type
+- [ ] Export transaction history as CSV
+- [ ] Display USD value at time of transaction
 
 ---
 
