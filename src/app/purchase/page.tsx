@@ -4,13 +4,12 @@ import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { Connection } from '@solana/web3.js';
 import Header from '@/components/header';
 import ConfirmationModal from '@/components/confirmation-modal';
 import TransactionStatusModal from '@/components/transaction-status-modal';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
-import { transferUSDT, getEstimatedFee } from '@/lib/solana/transfer';
+import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/solana/transfer';
 import { IoCheckmarkCircle } from 'react-icons/io5';
 
 export default function PurchasePage() {
@@ -47,7 +46,7 @@ export default function PurchasePage() {
   // Get estimated fee
   useEffect(() => {
     if (connected) {
-      const connection = new Connection('https://api.mainnet-beta.solana.com');
+      const connection = createSolanaConnection();
       getEstimatedFee(connection).then(setEstimatedFee);
     }
   }, [connected]);
@@ -114,7 +113,7 @@ export default function PurchasePage() {
       setShowStatusModal(true);
 
       // Create connection
-      const connection = new Connection('https://api.mainnet-beta.solana.com');
+      const connection = createSolanaConnection();
 
       // Execute transfer
       const result = await transferUSDT(

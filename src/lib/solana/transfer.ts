@@ -8,6 +8,20 @@ import {
 // USDT token mint address on Solana mainnet
 const USDT_MINT_ADDRESS = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
 
+/**
+ * Get Solana RPC URL from environment or fallback to devnet
+ */
+export function getSolanaRpcUrl(): string {
+  return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+}
+
+/**
+ * Create a Solana connection instance
+ */
+export function createSolanaConnection(): Connection {
+  return new Connection(getSolanaRpcUrl(), 'confirmed');
+}
+
 export interface TransferResult {
   signature: string;
   success: boolean;
