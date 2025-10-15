@@ -64,3 +64,16 @@ export const registerPurchase = async (dto: RegisterPurchaseDTO): Promise<FetchS
   const { data } = await http.post('/api/purchase/register', dto);
   return data;
 };
+
+/**
+ * GET /api/purchase/terms
+ * Retrieves the terms and conditions in markdown format
+ */
+export const getTerms = async (): Promise<string> => {
+  const { data } = await http.get('/api/purchase/terms', {
+    headers: {
+      'Accept': 'text/markdown',
+    },
+  });
+  return data;
+};

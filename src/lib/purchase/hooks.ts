@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPurchaseDetails, getPurchaseSession, registerPurchase } from './api';
+import { getPurchaseDetails, getPurchaseSession, registerPurchase, getTerms } from './api';
 import { QK } from '@/lib/queryKeys';
 import type { RegisterPurchaseDTO } from './types';
 
@@ -49,5 +49,19 @@ export function useRegisterPurchase() {
         queryKey: QK.purchase.details(),
       });
     },
+  });
+}
+
+/**
+ * Hook to fetch terms and conditions
+ * Returns markdown text that can be rendered with a markdown renderer
+ */
+export function useTerms(enabled = true) {
+  return useQuery({
+    queryKey: QK.purchase.terms(),
+    queryFn: getTerms,
+    enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes - terms don't change often
+    cacheTime: 10 * 60 * 1000, // 10 minutes in cache
   });
 }
