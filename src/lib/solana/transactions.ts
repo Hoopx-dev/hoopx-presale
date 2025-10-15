@@ -215,12 +215,12 @@ function parseTokenTransfer(
             'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': {
               symbol: 'USDT',
               name: 'Tether USD',
-              logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png'
+              logo: '/images/usdt.png'
             },
             'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': {
               symbol: 'USDC',
               name: 'USD Coin',
-              logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png'
+              logo: '/images/usdc.png'
             }
           };
 

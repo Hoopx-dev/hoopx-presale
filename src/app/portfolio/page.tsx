@@ -249,13 +249,12 @@ export default function PortfolioPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           {transaction.tokenLogo ? (
-                            <img
+                            <Image
                               src={transaction.tokenLogo}
                               alt={transaction.tokenSymbol}
+                              width={16}
+                              height={16}
                               className="w-4 h-4 rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
                             />
                           ) : (
                             <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">

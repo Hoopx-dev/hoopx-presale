@@ -1,15 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'raw.githubusercontent.com',
-        pathname: '/solana-labs/token-list/**',
-      },
-    ],
-  },
+  /* config options here */
 };
 
 export default nextConfig;
