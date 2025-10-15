@@ -19,7 +19,7 @@ export default function PurchasePage() {
   const router = useRouter();
   const { connected, publicKey, signTransaction } = useWallet();
   const { data: purchaseDetails, isLoading: detailsLoading } = usePurchaseDetails();
-  const { data: purchaseSession, isLoading: sessionLoading } = usePurchaseSession(publicKey?.toBase58());
+  const { data: purchaseSession, isLoading: sessionLoading, refetch: refetchSession } = usePurchaseSession(publicKey?.toBase58());
   const { selectedTier, setSelectedTier } = useUIStore();
   const registerMutation = useRegisterPurchase();
 
@@ -142,6 +142,18 @@ export default function PurchasePage() {
     try {
       // Close confirmation modal (Phantom wallet will open)
       setShowConfirmModal(false);
+
+      // Refetch session to ensure wallet hasn't purchased yet
+      const { data: latestSession } = await refetchSession();
+
+      // Check if wallet already purchased (double-purchase prevention)
+      if (latestSession?.purchaseStatus === 1) {
+        showToastNotification('You have already made a purchase', 'error');
+        setTimeout(() => {
+          router.push('/portfolio');
+        }, 1500);
+        return;
+      }
 
       // Create connection
       const connection = createSolanaConnection();
