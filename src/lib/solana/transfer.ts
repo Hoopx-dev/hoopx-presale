@@ -61,6 +61,29 @@ export async function transferUSDT(
       recipientPublicKey
     );
 
+    // Check if sender has USDT token account and sufficient balance
+    let senderBalance = 0;
+    try {
+      const senderAccountInfo = await getAccount(connection, senderTokenAccount);
+      senderBalance = Number(senderAccountInfo.amount) / 1_000_000; // Convert to USDT (6 decimals)
+    } catch (error) {
+      // Sender doesn't have a USDT token account
+      return {
+        signature: '',
+        success: false,
+        error: 'You do not have a USDT account. Please acquire USDT first.',
+      };
+    }
+
+    // Check if sender has enough USDT
+    if (senderBalance < amount) {
+      return {
+        signature: '',
+        success: false,
+        error: `Insufficient USDT balance. You have ${senderBalance.toFixed(2)} USDT but need ${amount} USDT.`,
+      };
+    }
+
     // Check if recipient token account exists, if not, create it
     let recipientAccountExists = true;
     try {

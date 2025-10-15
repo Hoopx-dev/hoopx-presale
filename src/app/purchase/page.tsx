@@ -165,7 +165,14 @@ export default function PurchasePage() {
       if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
         // User cancelled transaction - show info toast
         showToastNotification('Transaction cancelled', 'info');
+      } else if (errorMessage.includes('do not have a USDT account')) {
+        // User doesn't have USDT token account
+        showToastNotification('No USDT account found. Please get USDT first.', 'error');
+      } else if (errorMessage.includes('Insufficient USDT balance')) {
+        // User doesn't have enough USDT - show the actual balance
+        showToastNotification(errorMessage, 'error');
       } else if (errorMessage.includes('Insufficient')) {
+        // Generic insufficient balance
         showToastNotification('Insufficient balance to complete transaction', 'error');
       } else if (errorMessage.includes('Network')) {
         showToastNotification('Network error. Please try again', 'error');
