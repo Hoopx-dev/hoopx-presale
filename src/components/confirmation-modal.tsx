@@ -9,7 +9,6 @@ import { getSolPrice } from '@/lib/solana/price';
 interface ConfirmationModalProps {
   isOpen: boolean;
   amount: number;
-  hoopxAmount: number;
   rate: number;
   estimatedFee: number;
   onConfirm: () => void;
@@ -19,7 +18,6 @@ interface ConfirmationModalProps {
 export default function ConfirmationModal({
   isOpen,
   amount,
-  hoopxAmount,
   rate,
   estimatedFee,
   onConfirm,

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/header';
 import ConfirmationModal from '@/components/confirmation-modal';
 import TransactionStatusModal from '@/components/transaction-status-modal';
+import TermsModal from '@/components/terms-modal';
 import Toast, { ToastType } from '@/components/toast';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
@@ -15,7 +16,6 @@ import { IoCheckmarkCircle } from 'react-icons/io5';
 
 export default function PurchasePage() {
   const t = useTranslations('purchase');
-  const tPresale = useTranslations('presale');
   const router = useRouter();
   const { connected, publicKey, signTransaction } = useWallet();
   const { data: purchaseDetails, isLoading: detailsLoading } = usePurchaseDetails();
@@ -40,6 +40,9 @@ export default function PurchasePage() {
     setToastType(type);
     setShowToast(true);
   };
+
+  // Terms modal state
+  const [showTermsModal, setShowTermsModal] = useState(false);
 
   // Redirect if not connected
   useEffect(() => {
@@ -90,6 +93,22 @@ export default function PurchasePage() {
 
   // Check if wallet already purchased
   const alreadyPurchased = purchaseSession?.purchaseStatus === 1;
+
+  // Handle terms acceptance
+  const handleAcceptTerms = () => {
+    localStorage.setItem('hoopx-terms-accepted', 'true');
+    setShowTermsModal(false);
+  };
+
+  // Check if user has accepted terms on mount
+  useEffect(() => {
+    if (connected && !sessionLoading && !alreadyPurchased) {
+      const hasAcceptedTerms = localStorage.getItem('hoopx-terms-accepted');
+      if (!hasAcceptedTerms) {
+        setShowTermsModal(true);
+      }
+    }
+  }, [connected, sessionLoading, alreadyPurchased]);
 
   const displayRate = useMemo(() => {
     if (!purchaseDetails?.rate) return '0.003';
@@ -159,12 +178,12 @@ export default function PurchasePage() {
 
       // Show success status
       setTransactionStatus('success');
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Close status modal on error (if it was opened)
       setShowStatusModal(false);
 
       // Handle different error types with user-friendly messages
-      const errorMessage = error.message || 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
         // User cancelled transaction - show info toast
@@ -324,7 +343,6 @@ export default function PurchasePage() {
       <ConfirmationModal
         isOpen={showConfirmModal}
         amount={selectedTier || 0}
-        hoopxAmount={hoopxAmount}
         rate={rateNumber}
         estimatedFee={estimatedFee}
         onConfirm={handleConfirmTransfer}
@@ -337,6 +355,12 @@ export default function PurchasePage() {
         amount={selectedTier || 0}
         transactionId={transactionId}
         onClose={() => setShowStatusModal(false)}
+      />
+
+      {/* Terms Modal */}
+      <TermsModal
+        isOpen={showTermsModal}
+        onAccept={handleAcceptTerms}
       />
 
       {/* Toast Notification */}

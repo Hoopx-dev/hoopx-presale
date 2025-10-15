@@ -1,4 +1,4 @@
-import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
@@ -66,7 +66,7 @@ export async function transferUSDT(
     try {
       const senderAccountInfo = await getAccount(connection, senderTokenAccount);
       senderBalance = Number(senderAccountInfo.amount) / 1_000_000; // Convert to USDT (6 decimals)
-    } catch (error) {
+    } catch {
       // Sender doesn't have a USDT token account
       return {
         signature: '',
@@ -88,7 +88,7 @@ export async function transferUSDT(
     let recipientAccountExists = true;
     try {
       await getAccount(connection, recipientTokenAccount);
-    } catch (error) {
+    } catch {
       recipientAccountExists = false;
     }
 
@@ -131,12 +131,12 @@ export async function transferUSDT(
     let signedTransaction;
     try {
       signedTransaction = await signTransaction(transaction);
-    } catch (signError: any) {
+    } catch (signError: unknown) {
       // User rejected the transaction in wallet
       return {
         signature: '',
         success: false,
-        error: signError.message || 'User rejected the request.',
+        error: signError instanceof Error ? signError.message : 'User rejected the request.',
       };
     }
 
@@ -156,12 +156,12 @@ export async function transferUSDT(
       signature,
       success: true,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Return error without logging to keep console clean
     return {
       signature: '',
       success: false,
-      error: error.message || 'Transfer failed',
+      error: error instanceof Error ? error.message : 'Transfer failed',
     };
   }
 }
@@ -182,7 +182,7 @@ export async function getEstimatedFee(
     // Get recent prioritization fees
     const recentFees = await connection.getRecentPrioritizationFees();
 
-    let baseFee = 0.000005; // 5000 lamports for transaction
+    const baseFee = 0.000005; // 5000 lamports for transaction
     const avgPriorityFee = recentFees.length > 0
       ? recentFees.reduce((sum, fee) => sum + fee.prioritizationFee, 0) / recentFees.length
       : 0;
@@ -215,7 +215,7 @@ export async function getEstimatedFee(
     }
 
     return baseFee + priorityFee + accountCreationFee;
-  } catch (error) {
+  } catch {
     // Return fallback fee (assume account creation needed)
     return 0.00205;
   }

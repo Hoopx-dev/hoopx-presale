@@ -10,7 +10,6 @@ import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 
 export default function PortfolioPage() {
   const t = useTranslations('portfolio');
-  const tPresale = useTranslations('presale');
   const router = useRouter();
   const { connected, publicKey } = useWallet();
   const { data: purchaseDetails } = usePurchaseDetails();
