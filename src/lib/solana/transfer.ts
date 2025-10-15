@@ -127,8 +127,18 @@ export async function transferUSDT(
     );
     transaction.add(transferInstruction);
 
-    // Sign transaction
-    const signedTransaction = await signTransaction(transaction);
+    // Sign transaction with user's wallet
+    let signedTransaction;
+    try {
+      signedTransaction = await signTransaction(transaction);
+    } catch (signError: any) {
+      // User rejected the transaction in wallet
+      return {
+        signature: '',
+        success: false,
+        error: signError.message || 'User rejected the request.',
+      };
+    }
 
     // Send transaction
     const signature = await connection.sendRawTransaction(
@@ -157,30 +167,56 @@ export async function transferUSDT(
 }
 
 /**
- * Get estimated transaction fee
+ * Get estimated transaction fee including account creation if needed
  * @param connection Solana connection
+ * @param recipientAddress Recipient wallet address
+ * @param senderPublicKey Sender's public key
  * @returns Estimated fee in SOL
  */
-export async function getEstimatedFee(connection: Connection): Promise<number> {
+export async function getEstimatedFee(
+  connection: Connection,
+  recipientAddress?: string,
+  senderPublicKey?: PublicKey
+): Promise<number> {
   try {
     // Get recent prioritization fees
     const recentFees = await connection.getRecentPrioritizationFees();
 
-    if (recentFees.length === 0) {
-      // Fallback to 0.00001 SOL (~$0.002)
-      return 0.00001;
+    let baseFee = 0.000005; // 5000 lamports for transaction
+    const avgPriorityFee = recentFees.length > 0
+      ? recentFees.reduce((sum, fee) => sum + fee.prioritizationFee, 0) / recentFees.length
+      : 0;
+    const priorityFee = avgPriorityFee / 1_000_000_000;
+
+    // Check if recipient needs a token account created
+    let accountCreationFee = 0;
+    if (recipientAddress && senderPublicKey) {
+      try {
+        const usdtMint = new PublicKey(USDT_MINT_ADDRESS);
+        const recipientPublicKey = new PublicKey(recipientAddress);
+        const recipientTokenAccount = await getAssociatedTokenAddress(
+          usdtMint,
+          recipientPublicKey
+        );
+
+        // Check if account exists
+        try {
+          await getAccount(connection, recipientTokenAccount);
+          // Account exists, no creation fee needed
+        } catch {
+          // Account doesn't exist, need to create it
+          // Associated token account creation costs ~0.002 SOL (rent-exempt minimum)
+          accountCreationFee = 0.00204428;
+        }
+      } catch {
+        // If any error, assume worst case (account creation needed)
+        accountCreationFee = 0.00204428;
+      }
     }
 
-    // Calculate average fee
-    const avgFee = recentFees.reduce((sum, fee) => sum + fee.prioritizationFee, 0) / recentFees.length;
-
-    // Convert microlamports to SOL and add base fee
-    const baseFee = 0.000005; // 5000 lamports
-    const priorityFee = avgFee / 1_000_000_000;
-
-    return baseFee + priorityFee;
+    return baseFee + priorityFee + accountCreationFee;
   } catch (error) {
-    // Return fallback fee silently
-    return 0.00001;
+    // Return fallback fee (assume account creation needed)
+    return 0.00205;
   }
 }

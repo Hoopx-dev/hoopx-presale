@@ -57,11 +57,15 @@ export default function PurchasePage() {
 
   // Get estimated fee
   useEffect(() => {
-    if (connected) {
+    if (connected && publicKey && purchaseDetails?.hoopxWalletAddress) {
       const connection = createSolanaConnection();
-      getEstimatedFee(connection).then(setEstimatedFee);
+      getEstimatedFee(
+        connection,
+        purchaseDetails.hoopxWalletAddress,
+        publicKey
+      ).then(setEstimatedFee);
     }
-  }, [connected]);
+  }, [connected, publicKey, purchaseDetails?.hoopxWalletAddress]);
 
   // Calculate HOOPX amount based on selected tier and rate
   const hoopxAmount = useMemo(() => {
