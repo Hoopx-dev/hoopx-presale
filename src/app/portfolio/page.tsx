@@ -9,7 +9,6 @@ import Header from '@/components/header';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
 import { formatAddress, getExplorerUrl } from '@/lib/solana/transactions';
-import { useHoopxWalletStore } from '@/lib/store/useHoopxWalletStore';
 import { IoArrowUpCircle } from 'react-icons/io5';
 
 export default function PortfolioPage() {
@@ -18,28 +17,22 @@ export default function PortfolioPage() {
   const { connected, publicKey } = useWallet();
   const { data: purchaseDetails } = usePurchaseDetails();
   const { data: purchaseSession, isLoading } = usePurchaseSession(publicKey?.toBase58());
-  const hoopxAddress = useHoopxWalletStore((state) => state.hoopxAddress);
 
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<'purchase' | 'transactions'>('purchase');
 
-  // Fetch the specific transaction from the session using the decrypted hoopxAddress
+  // Fetch the specific transaction from the session using just the trxId
   const { data: transaction, isLoading: transactionLoading } = useTransaction(
-    purchaseSession?.trxId,
-    publicKey?.toBase58(),
-    hoopxAddress || undefined
+    purchaseSession?.trxId
   );
 
   // Debug logging
   useEffect(() => {
     console.log('[Portfolio] Transaction query params:');
     console.log('  - trxId:', purchaseSession?.trxId);
-    console.log('  - publicKey:', publicKey?.toBase58());
-    console.log('  - hoopxAddress (from store):', hoopxAddress);
-    console.log('  - hoopxWalletAddress (from purchaseDetails):', purchaseDetails?.hoopxWalletAddress);
     console.log('  - isLoading:', transactionLoading);
     console.log('  - transaction:', transaction);
-  }, [purchaseSession?.trxId, publicKey, hoopxAddress, purchaseDetails?.hoopxWalletAddress, transactionLoading, transaction]);
+  }, [purchaseSession?.trxId, transactionLoading, transaction]);
 
   // Redirect if not connected or no purchase
   useEffect(() => {
