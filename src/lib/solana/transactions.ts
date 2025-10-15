@@ -158,59 +158,86 @@ function parseTokenTransfer(
 
           console.log('[Parse Transfer] Final amount:', amount);
 
-          // Find the actual wallet addresses from account keys
-          const fromAddress = tx.transaction.message.accountKeys.find(
-            k => k.pubkey.toBase58() === source
-          )?.pubkey.toBase58() || source;
+          // The source and destination are TOKEN ACCOUNTS, not wallet addresses
+          // We need to get the actual wallet owners from pre/post token balances
+          let fromAddress = source;
+          let toAddress = destination;
 
-          const toAddress = tx.transaction.message.accountKeys.find(
-            k => k.pubkey.toBase58() === destination
-          )?.pubkey.toBase58() || destination;
+          // Try to get wallet addresses from token balances
+          if (tx.meta?.preTokenBalances && tx.meta?.postTokenBalances) {
+            const preBalances = tx.meta.preTokenBalances;
+            const postBalances = tx.meta.postTokenBalances;
 
-          console.log('[Parse Transfer] From address:', fromAddress);
-          console.log('[Parse Transfer] To address:', toAddress);
+            // Find the source token account
+            const sourceBalance = preBalances.find(b =>
+              tx.transaction.message.accountKeys[b.accountIndex]?.pubkey.toBase58() === source
+            );
 
-          // Extract token metadata
-          const tokenMint = info.mint;
-          console.log('[Parse Transfer] Token mint:', tokenMint);
+            // Find the destination token account
+            const destBalance = postBalances.find(b =>
+              tx.transaction.message.accountKeys[b.accountIndex]?.pubkey.toBase58() === destination
+            );
 
-          // Try to get token metadata from pre/post token balances
+            if (sourceBalance && sourceBalance.owner) {
+              fromAddress = sourceBalance.owner;
+              console.log('[Parse Transfer] Found source owner:', fromAddress);
+            }
+
+            if (destBalance && destBalance.owner) {
+              toAddress = destBalance.owner;
+              console.log('[Parse Transfer] Found destination owner:', toAddress);
+            }
+          }
+
+          console.log('[Parse Transfer] Final from address:', fromAddress);
+          console.log('[Parse Transfer] Final to address:', toAddress);
+
+          // Extract token metadata - mint may be in instruction or in token balances
+          let tokenMint = info.mint;
+          console.log('[Parse Transfer] Token mint from instruction:', tokenMint);
+
+          // If mint not in instruction, try to get from token balances
+          if (!tokenMint && tx.meta?.postTokenBalances) {
+            const postBalances = tx.meta.postTokenBalances;
+            const destBalance = postBalances.find(b =>
+              tx.transaction.message.accountKeys[b.accountIndex]?.pubkey.toBase58() === destination
+            );
+            if (destBalance) {
+              tokenMint = destBalance.mint;
+              console.log('[Parse Transfer] Token mint from balance:', tokenMint);
+            }
+          }
+
+          console.log('[Parse Transfer] Final token mint:', tokenMint);
+
+          // Common token symbols based on mint address
+          const knownTokens: Record<string, { symbol: string; name: string; logo?: string }> = {
+            'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': {
+              symbol: 'USDT',
+              name: 'Tether USD',
+              logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png'
+            },
+            'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': {
+              symbol: 'USDC',
+              name: 'USD Coin',
+              logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png'
+            }
+          };
+
+          // Try to get token metadata
           let tokenSymbol = 'Unknown';
           let tokenName: string | undefined;
           let tokenLogo: string | undefined;
 
-          if (tx.meta?.preTokenBalances || tx.meta?.postTokenBalances) {
-            const tokenBalances = tx.meta?.postTokenBalances || tx.meta?.preTokenBalances || [];
+          console.log('[Parse Transfer] Looking up token mint:', tokenMint);
 
-            // Find the token balance entry that matches our transfer
-            const tokenBalance = tokenBalances.find(
-              (balance) => balance.mint === tokenMint
-            );
-
-            if (tokenBalance && tokenBalance.uiTokenAmount) {
-              // Get the mint address to look up token info
-              console.log('[Parse Transfer] Found token balance:', tokenBalance);
-
-              // Common token symbols based on mint address
-              const knownTokens: Record<string, { symbol: string; name: string; logo?: string }> = {
-                'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB': {
-                  symbol: 'USDT',
-                  name: 'Tether USD',
-                  logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png'
-                },
-                'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v': {
-                  symbol: 'USDC',
-                  name: 'USD Coin',
-                  logo: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png'
-                }
-              };
-
-              if (tokenMint && knownTokens[tokenMint]) {
-                tokenSymbol = knownTokens[tokenMint].symbol;
-                tokenName = knownTokens[tokenMint].name;
-                tokenLogo = knownTokens[tokenMint].logo;
-              }
-            }
+          if (tokenMint && knownTokens[tokenMint]) {
+            tokenSymbol = knownTokens[tokenMint].symbol;
+            tokenName = knownTokens[tokenMint].name;
+            tokenLogo = knownTokens[tokenMint].logo;
+            console.log('[Parse Transfer] Found in known tokens:', tokenSymbol);
+          } else {
+            console.log('[Parse Transfer] Token mint not in known list');
           }
 
           console.log('[Parse Transfer] Token symbol:', tokenSymbol);
