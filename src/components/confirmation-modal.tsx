@@ -1,9 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useHoopxWalletStore } from '@/lib/store/useHoopxWalletStore';
+import { getSolPrice } from '@/lib/solana/price';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -26,6 +27,14 @@ export default function ConfirmationModal({
 }: ConfirmationModalProps) {
   const t = useTranslations('transaction');
   const { truncatedHoopxAddress } = useHoopxWalletStore();
+  const [solPrice, setSolPrice] = useState(150); // Default $150 per SOL
+
+  // Fetch real-time SOL price when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      getSolPrice().then(setSolPrice);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -41,6 +50,9 @@ export default function ConfirmationModal({
   if (!isOpen) return null;
 
   const formatNumber = (num: number) => num.toLocaleString('en-US');
+
+  // Calculate fee in USD based on current SOL price
+  const feeInUsd = estimatedFee * solPrice;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
@@ -109,7 +121,7 @@ export default function ConfirmationModal({
           <div className="flex justify-between items-center">
             <span className="text-gray-400 text-sm">{t('transactionFee')}</span>
             <span className="text-white font-medium text-sm">
-              ${estimatedFee.toFixed(2)} ({estimatedFee.toFixed(4)} SOL)
+              ${feeInUsd.toFixed(4)} ({estimatedFee.toFixed(5)} SOL)
             </span>
           </div>
         </div>

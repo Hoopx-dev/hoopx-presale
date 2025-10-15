@@ -58,10 +58,10 @@ export default function TransactionStatusModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center">
-      {/* Backdrop */}
+      {/* Backdrop - clickable to close */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={status === 'success' ? handleClose : undefined}
+        onClick={handleClose}
       />
 
       {/* Modal */}
@@ -125,20 +125,26 @@ export default function TransactionStatusModal({
           </button>
         )}
 
-        {/* Close Button (only for success state) */}
-        {status === 'success' && (
+        {/* Action Buttons */}
+        {status === 'success' ? (
           <button
             onClick={handleClose}
             className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 font-bold text-lg py-4 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg cursor-pointer"
           >
             {t('close')}
           </button>
-        )}
-
-        {/* Sending indicator */}
-        {status === 'sending' && (
-          <div className="flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+        ) : (
+          // Sending state - show spinner and cancel button
+          <div className="space-y-4">
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div>
+            </div>
+            <button
+              onClick={handleClose}
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white font-bold text-lg py-4 px-6 rounded-2xl transition-all duration-200 cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         )}
       </div>
