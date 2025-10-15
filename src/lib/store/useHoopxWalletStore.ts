@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 interface HoopxWalletState {
+  hoopxAddress: string | null; // Full decrypted address
   truncatedHoopxAddress: string | null;
   setHoopxAddress: (address: string | null) => void;
   clearHoopxAddress: () => void;
@@ -16,13 +17,16 @@ const formatAddress = (address: string): string => {
 };
 
 export const useHoopxWalletStore = create<HoopxWalletState>((set) => ({
+  hoopxAddress: null,
   truncatedHoopxAddress: null,
 
   setHoopxAddress: (address) => set({
+    hoopxAddress: address,
     truncatedHoopxAddress: address ? formatAddress(address) : null,
   }),
 
   clearHoopxAddress: () => set({
+    hoopxAddress: null,
     truncatedHoopxAddress: null,
   }),
 }));

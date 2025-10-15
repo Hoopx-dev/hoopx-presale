@@ -55,7 +55,7 @@ export async function fetchTransactionBySignature(
       return null;
     }
 
-    const result = {
+    const result: TransactionInfo = {
       signature,
       timestamp: tx.blockTime || Date.now() / 1000,
       amount: transferInfo.amount,
