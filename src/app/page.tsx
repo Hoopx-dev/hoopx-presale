@@ -22,6 +22,11 @@ function HomeContent() {
   const { setReferralAddress } = useReferralStore();
   const shouldRedirect = useRef(false);
 
+  // Track current page for terms modal logic
+  useEffect(() => {
+    sessionStorage.setItem('hoopx-current-page', 'home');
+  }, []);
+
   // Read referral parameter from URL and store it
   useEffect(() => {
     const referralParam = searchParams.get('referral');

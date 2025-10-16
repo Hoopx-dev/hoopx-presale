@@ -27,6 +27,11 @@ export default function PortfolioPage() {
     purchaseSession?.trxId
   );
 
+  // Track current page for terms modal logic
+  useEffect(() => {
+    sessionStorage.setItem('hoopx-current-page', 'portfolio');
+  }, []);
+
   // Debug logging
   useEffect(() => {
     console.log('[Portfolio] Transaction query params:');

@@ -139,12 +139,29 @@ export default function PurchasePage() {
 
   // Handle terms acceptance
   const handleAcceptTerms = () => {
+    // Mark terms as accepted in sessionStorage
+    sessionStorage.setItem('hoopx-terms-accepted-session', 'true');
     setShowTermsModal(false);
   };
 
-  // Show terms modal every time user enters purchase page
+  // Show terms modal only when navigating from a different page (not on refresh or language change)
   useEffect(() => {
-    if (connected && !sessionLoading && !alreadyPurchased) {
+    const previousPage = sessionStorage.getItem('hoopx-current-page');
+
+    // If previous page wasn't purchase page, clear the acceptance flag
+    // This ensures modal shows when coming from another page
+    if (previousPage !== 'purchase') {
+      sessionStorage.removeItem('hoopx-terms-accepted-session');
+    }
+
+    // Update current page to purchase
+    sessionStorage.setItem('hoopx-current-page', 'purchase');
+
+    // Check if terms have been accepted after potential clearing
+    const hasAcceptedInSession = sessionStorage.getItem('hoopx-terms-accepted-session');
+
+    // Show modal if not accepted in this session
+    if (connected && !sessionLoading && !alreadyPurchased && !hasAcceptedInSession) {
       setShowTermsModal(true);
     }
   }, [connected, sessionLoading, alreadyPurchased]);
