@@ -221,7 +221,14 @@
     "activityNotActive": "预售活动当前未开放",
     "insufficientBalance": "USDT 余额不足",
     "genericError": "发生错误，请重试。",
-    "loadingDataFailed": "加载数据失败"
+    "loadingDataFailed": "加载数据失败",
+    "missingData": "转账所需数据缺失",
+    "alreadyPurchasedError": "您已经完成购买",
+    "transactionCancelled": "交易已取消",
+    "noUsdtAccount": "未找到 USDT 账户。请先获取 USDT。",
+    "insufficientBalanceGeneric": "余额不足，无法完成交易",
+    "transactionFailed": "交易失败，请重试",
+    "insufficientUsdtBalance": "USDT 余额不足。您有 {current} USDT，但需要 {required} USDT。"
   },
   "footer": {
     "description": "HOOPX - 篮球链上。您值得信赖的篮球代币预售平台。",

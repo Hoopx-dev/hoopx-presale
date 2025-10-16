@@ -19,6 +19,7 @@ import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/sol
 
 export default function PurchasePage() {
   const t = useTranslations('purchase');
+  const tError = useTranslations('errors');
   const router = useRouter();
   const { connected, publicKey, signTransaction } = useWallet();
   const { data: purchaseDetails, isLoading: detailsLoading } = usePurchaseDetails();
@@ -192,7 +193,7 @@ export default function PurchasePage() {
   // Handle transaction confirmation
   const handleConfirmTransfer = async () => {
     if (!selectedTier || !publicKey || !signTransaction || !purchaseDetails?.hoopxWalletAddress) {
-      showToastNotification('Missing required data for transfer', 'error');
+      showToastNotification(tError('missingData'), 'error');
       return;
     }
 
@@ -205,7 +206,7 @@ export default function PurchasePage() {
 
       // Check if wallet already purchased (double-purchase prevention)
       if (latestSession?.purchaseStatus === 1) {
-        showToastNotification('You have already made a purchase', 'error');
+        showToastNotification(tError('alreadyPurchasedError'), 'error');
         setTimeout(() => {
           router.push('/portfolio');
         }, 1500);
@@ -287,24 +288,34 @@ export default function PurchasePage() {
 
       if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
         // User cancelled transaction - show info toast
-        showToastNotification('Transaction cancelled', 'info');
+        showToastNotification(tError('transactionCancelled'), 'info');
       } else if (errorMessage.includes('Cannot use your own wallet address as referral')) {
         // User tried to use their own address as referral
         showToastNotification(t('cannotReferSelf'), 'error');
       } else if (errorMessage.includes('do not have a USDT account')) {
         // User doesn't have USDT token account
-        showToastNotification('No USDT account found. Please get USDT first.', 'error');
+        showToastNotification(tError('noUsdtAccount'), 'error');
       } else if (errorMessage.includes('Insufficient USDT balance')) {
-        // User doesn't have enough USDT - show the actual balance
-        showToastNotification(errorMessage, 'error');
+        // User doesn't have enough USDT - extract values and use translation
+        // Message format: "Insufficient USDT balance. You have X USDT but need Y USDT."
+        const match = errorMessage.match(/have ([\d.]+) USDT but need ([\d.]+) USDT/);
+        if (match) {
+          const [, current, required] = match;
+          showToastNotification(
+            tError('insufficientUsdtBalance', { current, required }),
+            'error'
+          );
+        } else {
+          showToastNotification(tError('insufficientBalanceGeneric'), 'error');
+        }
       } else if (errorMessage.includes('Insufficient')) {
         // Generic insufficient balance
-        showToastNotification('Insufficient balance to complete transaction', 'error');
+        showToastNotification(tError('insufficientBalanceGeneric'), 'error');
       } else if (errorMessage.includes('Network')) {
-        showToastNotification('Network error. Please try again', 'error');
+        showToastNotification(tError('networkError'), 'error');
       } else {
         // Generic error
-        showToastNotification('Transaction failed. Please try again', 'error');
+        showToastNotification(tError('transactionFailed'), 'error');
       }
     }
   };
