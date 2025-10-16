@@ -43,9 +43,11 @@ export default function PurchaseCard({
   };
 
   const formatTokenAmount = (num: number) => {
-    // If amount >= 100, round to 2 decimals, otherwise show up to 6 decimals
+    // If amount >= 100, round down to 2 decimals, otherwise round down to 6 decimals
     const decimals = num >= 100 ? 2 : 6;
-    return num.toLocaleString('en-US', {
+    const multiplier = Math.pow(10, decimals);
+    const roundedDown = Math.floor(num * multiplier) / multiplier;
+    return roundedDown.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: decimals
     });

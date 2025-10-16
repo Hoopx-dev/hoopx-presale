@@ -64,9 +64,11 @@ export default function PortfolioPage() {
 
   const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return '0';
-    // If amount >= 100, round to 2 decimals, otherwise show up to 6 decimals
+    // If amount >= 100, round down to 2 decimals, otherwise round down to 6 decimals
     const decimals = num >= 100 ? 2 : 6;
-    return num.toLocaleString('en-US', {
+    const multiplier = Math.pow(10, decimals);
+    const roundedDown = Math.floor(num * multiplier) / multiplier;
+    return roundedDown.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: decimals
     });
@@ -151,7 +153,7 @@ export default function PortfolioPage() {
                     ? (typeof purchaseSession.rate === 'string'
                         ? parseFloat(purchaseSession.rate)
                         : purchaseSession.rate
-                      ).toFixed(3)
+                      ).toString()
                     : '0.003'
                 }
                 amount={purchaseSession?.purchasedAmount || 0}

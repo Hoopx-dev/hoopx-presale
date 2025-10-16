@@ -69,10 +69,10 @@ function HomeContent() {
   const maxTier = purchaseDetails?.tiers?.[purchaseDetails.tiers.length - 1] || 5000;
   const rate = purchaseDetails?.rate || '0.003';
 
-  // Format rate to 3 decimal places
+  // Remove trailing zeros without rounding
   const displayRate = typeof rate === 'string'
-    ? parseFloat(rate).toFixed(3)
-    : rate.toFixed(3);
+    ? parseFloat(rate).toString()
+    : rate.toString();
 
   return (
     <div className="min-h-screen">

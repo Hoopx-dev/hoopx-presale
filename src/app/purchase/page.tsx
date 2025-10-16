@@ -135,6 +135,18 @@ export default function PurchasePage() {
     return num.toLocaleString('en-US');
   };
 
+  // Format token amounts with round down
+  const formatTokenAmount = (num: number) => {
+    // If amount >= 100, round down to 2 decimals, otherwise round down to 6 decimals
+    const decimals = num >= 100 ? 2 : 6;
+    const multiplier = Math.pow(10, decimals);
+    const roundedDown = Math.floor(num * multiplier) / multiplier;
+    return roundedDown.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: decimals
+    });
+  };
+
   // Check if wallet already purchased
   const alreadyPurchased = purchaseSession?.purchaseStatus === 1;
 
@@ -172,7 +184,8 @@ export default function PurchasePage() {
     const rate = typeof purchaseDetails.rate === 'string'
       ? parseFloat(purchaseDetails.rate)
       : purchaseDetails.rate;
-    return rate.toFixed(3);
+    // Remove trailing zeros without rounding
+    return rate.toString();
   }, [purchaseDetails?.rate]);
 
   const rateNumber = useMemo(() => {
@@ -379,7 +392,7 @@ export default function PurchasePage() {
             items={[
               {
                 label: t('hoopxReceive'),
-                value: selectedTier ? formatNumber(hoopxAmount) : '0',
+                value: selectedTier ? formatTokenAmount(hoopxAmount) : '0',
               },
               {
                 label: t('vestingPeriod'),
