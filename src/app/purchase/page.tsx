@@ -30,14 +30,40 @@ export default function PurchasePage() {
   // Referral input state
   const [showReferralInput, setShowReferralInput] = useState(false);
   const [referralInput, setReferralInput] = useState('');
+  const [referralError, setReferralError] = useState('');
 
-  // Auto-fill referral input from store
+  // Auto-fill referral input from store (only if it's not the connected wallet)
   useEffect(() => {
-    if (referralAddress) {
-      setReferralInput(referralAddress);
-      setShowReferralInput(true);
+    if (referralAddress && publicKey) {
+      // Don't auto-fill if referral address is the same as connected wallet
+      if (referralAddress !== publicKey.toBase58()) {
+        setReferralInput(referralAddress);
+        setShowReferralInput(true);
+      }
     }
-  }, [referralAddress]);
+  }, [referralAddress, publicKey]);
+
+  // Validate referral address on blur
+  const handleReferralBlur = () => {
+    const trimmedReferral = referralInput.trim();
+    if (trimmedReferral) {
+      if (trimmedReferral === publicKey?.toBase58()) {
+        setReferralError(t('cannotReferSelf'));
+      } else {
+        setReferralError('');
+      }
+    } else {
+      setReferralError('');
+    }
+  };
+
+  // Clear error when input changes
+  const handleReferralChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReferralInput(e.target.value);
+    if (referralError) {
+      setReferralError('');
+    }
+  };
 
   // Modal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -213,9 +239,15 @@ export default function PurchasePage() {
         throw new Error('Missing required registration data');
       }
 
+      // Validate referral address is not the same as user's wallet
+      const trimmedReferral = referralInput.trim();
+      if (trimmedReferral && trimmedReferral === publicKey.toBase58()) {
+        throw new Error('Cannot use your own wallet address as referral');
+      }
+
       // Add referral address if provided
-      const registrationData = referralInput.trim()
-        ? { ...registrationPayload, referralWalletAddress: referralInput.trim() }
+      const registrationData = trimmedReferral
+        ? { ...registrationPayload, referralWalletAddress: trimmedReferral }
         : registrationPayload;
 
       // Register purchase in backend
@@ -243,6 +275,9 @@ export default function PurchasePage() {
       if (errorMessage.includes('User rejected') || errorMessage.includes('cancelled')) {
         // User cancelled transaction - show info toast
         showToastNotification('Transaction cancelled', 'info');
+      } else if (errorMessage.includes('Cannot use your own wallet address as referral')) {
+        // User tried to use their own address as referral
+        showToastNotification(t('cannotReferSelf'), 'error');
       } else if (errorMessage.includes('do not have a USDT account')) {
         // User doesn't have USDT token account
         showToastNotification('No USDT account found. Please get USDT first.', 'error');
@@ -369,20 +404,28 @@ export default function PurchasePage() {
                 <input
                   type="text"
                   value={referralInput}
-                  onChange={(e) => setReferralInput(e.target.value)}
+                  onChange={handleReferralChange}
+                  onBlur={handleReferralBlur}
                   placeholder={t('referralPlaceholder')}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-secondary transition-colors"
+                  className={`w-full bg-white/10 border rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none transition-colors ${
+                    referralError
+                      ? 'border-danger focus:border-danger'
+                      : 'border-white/20 focus:border-secondary'
+                  }`}
                 />
+                {referralError && (
+                  <p className="text-danger text-xs mt-2">{referralError}</p>
+                )}
               </div>
             )}
           </div>
 
           {/* Buy Button */}
           <Button
-            variant={!selectedTier || alreadyPurchased || detailsLoading ? "primary-disabled" : "primary"}
+            variant={!selectedTier || alreadyPurchased || detailsLoading || !!referralError ? "primary-disabled" : "primary"}
             size="large"
             onClick={handleBuyClick}
-            disabled={!selectedTier || alreadyPurchased || detailsLoading}
+            disabled={!selectedTier || alreadyPurchased || detailsLoading || !!referralError}
             className="w-full"
           >
             {selectedTier

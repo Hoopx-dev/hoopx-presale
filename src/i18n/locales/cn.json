@@ -129,7 +129,8 @@
     "failed": "失败",
     "haveReferral": "有推荐人吗？",
     "referralWalletAddress": "推荐人钱包地址",
-    "referralPlaceholder": "输入推荐人钱包地址"
+    "referralPlaceholder": "输入推荐人钱包地址",
+    "cannotReferSelf": "不能使用您自己的钱包地址作为推荐人"
   },
   "transaction": {
     "reviewTitle": "认购金额",

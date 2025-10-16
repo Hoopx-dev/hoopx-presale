@@ -129,7 +129,8 @@
     "failed": "Failed",
     "haveReferral": "Have a referral?",
     "referralWalletAddress": "Referral Wallet Address",
-    "referralPlaceholder": "Enter referrer's wallet address"
+    "referralPlaceholder": "Enter referrer's wallet address",
+    "cannotReferSelf": "Cannot use your own wallet address as referral"
   },
   "transaction": {
     "reviewTitle": "Purchase Amount",
