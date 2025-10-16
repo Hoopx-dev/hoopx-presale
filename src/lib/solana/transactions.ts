@@ -319,7 +319,5 @@ export function formatAddress(address: string): string {
  * Get Solana explorer URL for transaction
  */
 export function getExplorerUrl(signature: string): string {
-  const isStaging = process.env.NEXT_PUBLIC_IS_STAGING === "true";
-  const network = isStaging ? "devnet" : "mainnet-beta";
-  return `https://solscan.io/tx/${signature}?cluster=${network}`;
+  return `https://solscan.io/tx/${signature}`;
 }

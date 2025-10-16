@@ -11,10 +11,10 @@ import {
 const USDT_MINT_ADDRESS = 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB';
 
 /**
- * Get Solana RPC URL from environment or fallback to devnet
+ * Get Solana RPC URL from environment or fallback to mainnet
  */
 export function getSolanaRpcUrl(): string {
-  return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+  return process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
 }
 
 /**
