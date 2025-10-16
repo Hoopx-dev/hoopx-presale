@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "HOOPX Presale - Basketball Token on Solana",
   description: "Join the HOOPX token presale. Purchase HOOPX tokens with USDT on Solana blockchain with vesting periods.",
+  icons: {
+    icon: "/images/favicon.ico",
+  },
 };
 
 export default function RootLayout({
