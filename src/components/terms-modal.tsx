@@ -79,8 +79,8 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
             className={`
               w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-200
               ${canClose
-                ? 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 cursor-pointer transform hover:scale-105 shadow-lg'
-                : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                ? 'text-yellow-400 hover:text-yellow-300 cursor-pointer transform hover:scale-105'
+                : 'text-gray-400 cursor-not-allowed'
               }
             `}
           >

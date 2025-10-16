@@ -139,17 +139,13 @@ export default function PurchasePage() {
 
   // Handle terms acceptance
   const handleAcceptTerms = () => {
-    localStorage.setItem('hoopx-terms-accepted', 'true');
     setShowTermsModal(false);
   };
 
-  // Check if user has accepted terms on mount
+  // Show terms modal every time user enters purchase page
   useEffect(() => {
     if (connected && !sessionLoading && !alreadyPurchased) {
-      const hasAcceptedTerms = localStorage.getItem('hoopx-terms-accepted');
-      if (!hasAcceptedTerms) {
-        setShowTermsModal(true);
-      }
+      setShowTermsModal(true);
     }
   }, [connected, sessionLoading, alreadyPurchased]);
 
