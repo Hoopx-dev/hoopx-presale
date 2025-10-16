@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 
 interface UIState {
   selectedTier: number | null;
-  setSelectedTier: (tier: number) => void;
+  setSelectedTier: (tier: number | null) => void;
 }
 
 export const useUIStore = create<UIState>()(

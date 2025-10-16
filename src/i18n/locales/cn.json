@@ -126,7 +126,10 @@
     "status": "状态",
     "pending": "待处理",
     "completed": "已完成",
-    "failed": "失败"
+    "failed": "失败",
+    "haveReferral": "有推荐人吗？",
+    "referralWalletAddress": "推荐人钱包地址",
+    "referralPlaceholder": "输入推荐人钱包地址"
   },
   "transaction": {
     "reviewTitle": "认购金额",

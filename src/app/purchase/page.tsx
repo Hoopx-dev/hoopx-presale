@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
+import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import Header from '@/components/header';
 import ConfirmationModal from '@/components/confirmation-modal';
 import TransactionStatusModal from '@/components/transaction-status-modal';
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import InfoListCard from '@/components/ui/info-list-card';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
+import { useReferralStore } from '@/lib/store/useReferralStore';
 import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/solana/transfer';
 
 export default function PurchasePage() {
@@ -22,7 +24,20 @@ export default function PurchasePage() {
   const { data: purchaseDetails, isLoading: detailsLoading } = usePurchaseDetails();
   const { data: purchaseSession, isLoading: sessionLoading, refetch: refetchSession } = usePurchaseSession(publicKey?.toBase58());
   const { selectedTier, setSelectedTier } = useUIStore();
+  const { referralAddress } = useReferralStore();
   const registerMutation = useRegisterPurchase();
+
+  // Referral input state
+  const [showReferralInput, setShowReferralInput] = useState(false);
+  const [referralInput, setReferralInput] = useState('');
+
+  // Auto-fill referral input from store
+  useEffect(() => {
+    if (referralAddress) {
+      setReferralInput(referralAddress);
+      setShowReferralInput(true);
+    }
+  }, [referralAddress]);
 
   // Modal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -185,13 +200,26 @@ export default function PurchasePage() {
       // Store transaction ID
       setTransactionId(result.signature);
 
-      // Register purchase in backend
-      const registrationResult = await registerMutation.mutateAsync({
+      // Validate required fields before registration
+      const registrationPayload = {
         publicKey: publicKey.toBase58(),
         amount: selectedTier,
         trxId: result.signature,
         activityId: purchaseDetails.activityId,
-      });
+      };
+
+      // Validate all required fields exist
+      if (!registrationPayload.publicKey || !registrationPayload.amount || !registrationPayload.trxId || !registrationPayload.activityId) {
+        throw new Error('Missing required registration data');
+      }
+
+      // Add referral address if provided
+      const registrationData = referralInput.trim()
+        ? { ...registrationPayload, referralWalletAddress: referralInput.trim() }
+        : registrationPayload;
+
+      // Register purchase in backend
+      const registrationResult = await registerMutation.mutateAsync(registrationData);
 
       // Show success status
       setTransactionStatus('success');
@@ -318,6 +346,36 @@ export default function PurchasePage() {
             ]}
             className="mb-6"
           />
+
+          {/* Referral Section */}
+          <div className="mb-6">
+            {/* Collapsible Header */}
+            <button
+              type="button"
+              onClick={() => setShowReferralInput(!showReferralInput)}
+              className="w-full flex items-center justify-between text-white/70 text-sm py-3 cursor-pointer hover:text-white transition-colors"
+            >
+              <span>{t('haveReferral')}</span>
+              {showReferralInput ? (
+                <FiChevronUp className="w-4 h-4" />
+              ) : (
+                <FiChevronDown className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Collapsible Input */}
+            {showReferralInput && (
+              <div className="mt-2">
+                <input
+                  type="text"
+                  value={referralInput}
+                  onChange={(e) => setReferralInput(e.target.value)}
+                  placeholder={t('referralPlaceholder')}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:border-secondary transition-colors"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Buy Button */}
           <Button

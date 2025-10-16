@@ -30,4 +30,5 @@ export interface RegisterPurchaseDTO {
   amount: number;
   trxId: string;
   activityId: string;
+  referralWalletAddress?: string;
 }

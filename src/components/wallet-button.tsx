@@ -6,6 +6,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { IoWallet } from 'react-icons/io5';
 import { useWalletStore } from '@/lib/store/useWalletStore';
+import { useReferralStore } from '@/lib/store/useReferralStore';
+import { useUIStore } from '@/lib/store/useUIStore';
 import { Button } from './ui/button';
 
 export default function WalletButton() {
@@ -16,6 +18,8 @@ export default function WalletButton() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const t = useTranslations('wallet');
   const { setAddress, clearAddress, truncatedAddress } = useWalletStore();
+  const { clearReferralAddress } = useReferralStore();
+  const { setSelectedTier } = useUIStore();
 
   useEffect(() => {
     setMounted(true);
@@ -59,6 +63,10 @@ export default function WalletButton() {
 
   const handleDisconnect = async () => {
     await disconnect();
+    // Clear all stores
+    clearAddress();
+    clearReferralAddress();
+    setSelectedTier(null);
     setShowDropdown(false);
   };
 

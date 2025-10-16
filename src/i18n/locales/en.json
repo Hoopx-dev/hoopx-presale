@@ -126,7 +126,10 @@
     "status": "Status",
     "pending": "Pending",
     "completed": "Completed",
-    "failed": "Failed"
+    "failed": "Failed",
+    "haveReferral": "Have a referral?",
+    "referralWalletAddress": "Referral Wallet Address",
+    "referralPlaceholder": "Enter referrer's wallet address"
   },
   "transaction": {
     "reviewTitle": "Purchase Amount",

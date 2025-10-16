@@ -2,22 +2,33 @@
 
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
+import { useReferralStore } from '@/lib/store/useReferralStore';
 
-export default function Home() {
+function HomeContent() {
   const t = useTranslations('home');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { connected, publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
   const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
+  const { setReferralAddress } = useReferralStore();
   const shouldRedirect = useRef(false);
+
+  // Read referral parameter from URL and store it
+  useEffect(() => {
+    const referralParam = searchParams.get('referral');
+    if (referralParam) {
+      setReferralAddress(referralParam);
+    }
+  }, [searchParams, setReferralAddress]);
 
   // Redirect to purchase or portfolio page after wallet connects
   useEffect(() => {
@@ -132,5 +143,17 @@ export default function Home() {
         </main>
       </div>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-white">Loading...</p>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
