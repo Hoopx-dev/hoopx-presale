@@ -57,9 +57,14 @@ export default function PortfolioPage() {
     return purchaseSession.purchasedAmount / purchaseSession.rate;
   }, [purchaseSession]);
 
-  const formatNumber = (num: number | undefined | null) => {
+  const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return '0';
-    return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    // If amount >= 100, round to 2 decimals, otherwise show up to 6 decimals
+    const decimals = num >= 100 ? 2 : 6;
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: decimals
+    });
   };
 
   // Get date label for transaction
@@ -100,7 +105,7 @@ export default function PortfolioPage() {
           <div className="text-center mb-8">
             <p className="text-white/70 text-sm mb-2">{t('totalAssets')}</p>
             <p className="text-white text-6xl font-bold mb-1">
-              {formatNumber(hoopxAmount)}
+              {formatTokenAmount(hoopxAmount)}
             </p>
             <p className="text-white text-xl">HOOPX</p>
           </div>

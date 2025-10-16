@@ -35,10 +35,19 @@ export default function PurchaseCard({
   tokenAmount,
   className = '',
 }: PurchaseCardProps) {
-  const formatNumber = (num: number) => {
+  const formatUSDT = (num: number) => {
     return num.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2
+    });
+  };
+
+  const formatTokenAmount = (num: number) => {
+    // If amount >= 100, round to 2 decimals, otherwise show up to 6 decimals
+    const decimals = num >= 100 ? 2 : 6;
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: decimals
     });
   };
 
@@ -70,10 +79,10 @@ export default function PurchaseCard({
         {/* Amount Info */}
         <div className="text-right">
           <p className="text-white font-bold text-2xl mb-1">
-            {formatNumber(amount)} USDT
+            {formatUSDT(amount)} USDT
           </p>
           <p className="text-white/70 text-sm">
-            {formatNumber(tokenAmount)} {tokenName}
+            {formatTokenAmount(tokenAmount)} {tokenName}
           </p>
         </div>
       </div>
