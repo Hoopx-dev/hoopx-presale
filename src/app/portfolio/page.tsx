@@ -4,12 +4,12 @@ import { useTranslations } from 'next-intl';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
-import { FiArrowUpRight } from 'react-icons/fi';
 import Header from '@/components/header';
+import PurchaseCard from '@/components/ui/purchase-card';
+import TransactionCard from '@/components/ui/transaction-card';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
-import { formatAddress, getExplorerUrl } from '@/lib/solana/transactions';
+import { getExplorerUrl } from '@/lib/solana/transactions';
 
 export default function PortfolioPage() {
   const t = useTranslations('portfolio');
@@ -59,16 +59,6 @@ export default function PortfolioPage() {
   const formatNumber = (num: number | undefined | null) => {
     if (num === undefined || num === null) return '0';
     return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
-  };
-
-  // Format timestamp to time string (HH:MM AM/PM)
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
   };
 
   // Get date label for transaction
@@ -142,31 +132,14 @@ export default function PortfolioPage() {
           {activeTab === 'purchase' && (
             <>
               {/* Purchase Card */}
-              <div className="bg-white/10 rounded-2xl p-5 mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Image
-                    src="/images/token-badge.png"
-                    alt="HOOPX"
-                    width={48}
-                    height={48}
-                    className="w-12 h-12"
-                  />
-                  <div className="flex-1">
-                    <p className="text-white font-bold text-lg">HOOPX</p>
-                    <p className="text-white/70 text-sm">
-                      {purchaseSession?.rate || '0.003'} USDT
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-white font-bold text-lg">
-                      {formatNumber(purchaseSession?.purchasedAmount)} USDT
-                    </p>
-                    <p className="text-cyan-400 text-sm">
-                      {formatNumber(hoopxAmount)} HOOPX
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <PurchaseCard
+                logo="/images/token-badge.png"
+                tokenName="HOOPX"
+                tokenPrice={purchaseSession?.rate?.toString() || '0.003'}
+                amount={purchaseSession?.purchasedAmount || 0}
+                tokenAmount={hoopxAmount}
+                className="mb-6"
+              />
 
               {/* Purchase Info */}
               <div className="space-y-3">
@@ -234,60 +207,16 @@ export default function PortfolioPage() {
                   </h3>
 
                   {/* Transaction Card */}
-                  <a
-                    href={getExplorerUrl(transaction.signature)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block bg-white/10 rounded-2xl p-4 hover:bg-white/15 transition-colors"
-                  >
-                    {/* Top row: Status and Time */}
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-1 bg-purple-900/60 rounded-full px-3 py-1">
-                        <FiArrowUpRight className="w-3 h-3 text-green-400" />
-                        <span className="text-green-400 text-xs">{t('transferred')}</span>
-                      </div>
-                      <span className="text-white/50 text-xs">
-                        {formatTime(transaction.timestamp)}
-                      </span>
-                    </div>
-
-                    {/* Bottom row: Logo, Info, Amount */}
-                    <div className="flex items-center gap-3">
-                      {/* Token Logo */}
-                      {transaction.tokenLogo ? (
-                        <Image
-                          src={transaction.tokenLogo}
-                          alt={transaction.tokenSymbol}
-                          width={48}
-                          height={48}
-                          className="w-12 h-12 rounded-full flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                          <span className="text-white text-xl font-bold">
-                            {transaction.tokenSymbol.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Transaction Info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-bold text-lg mb-1">
-                          {transaction.tokenSymbol}
-                        </p>
-                        <p className="text-white/50 text-xs">
-                          {t('to')}: {formatAddress(transaction.to)}
-                        </p>
-                      </div>
-
-                      {/* Amount */}
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-red-400 font-bold text-base">
-                          -{formatNumber(transaction.amount)} {transaction.tokenSymbol}
-                        </p>
-                      </div>
-                    </div>
-                  </a>
+                  <TransactionCard
+                    logo={transaction.tokenLogo || ''}
+                    tokenSymbol={transaction.tokenSymbol}
+                    amount={transaction.amount}
+                    address={transaction.to}
+                    timestamp={transaction.timestamp}
+                    statusLabel={t('transferred')}
+                    isOutgoing={true}
+                    onClick={() => window.open(getExplorerUrl(transaction.signature), '_blank')}
+                  />
 
                   {/* End message */}
                   <p className="text-white/50 text-center text-sm py-4">

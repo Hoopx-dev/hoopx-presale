@@ -16,7 +16,7 @@ export default function Header() {
   };
 
   return (
-    <header className='flex items-center justify-between mb-4 gap-3'>
+    <header className='flex items-center justify-between mb-4 gap-2 sm:gap-3'>
       {/* Logo - hidden on homepage */}
       {!isHomepage && (
         <div className="flex-shrink-0">
@@ -25,14 +25,14 @@ export default function Header() {
             alt="HOOPX"
             width={120}
             height={36}
-            className="w-auto h-9 object-contain"
+            className="w-auto h-7 sm:h-9 object-contain"
             priority
           />
         </div>
       )}
 
       {/* Right Side Buttons */}
-      <div className={`flex items-center gap-3 ${isHomepage ? 'ml-auto' : ''}`}>
+      <div className={`flex items-center gap-2 sm:gap-3 ${isHomepage ? 'ml-auto' : ''}`}>
         {/* Connect Wallet Button */}
         <WalletButton />
 
@@ -41,6 +41,7 @@ export default function Header() {
           variant="secondary"
           size="small"
           onClick={toggleLocale}
+          className="flex-shrink-0"
         >
           {locale === "en" ? "EN" : "中文"}
         </Button>
