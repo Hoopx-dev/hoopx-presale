@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Header from '@/components/header';
 import PurchaseCard from '@/components/ui/purchase-card';
 import TransactionCard from '@/components/ui/transaction-card';
+import InfoListCard from '@/components/ui/info-list-card';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
 import { getExplorerUrl } from '@/lib/solana/transactions';
@@ -135,57 +136,47 @@ export default function PortfolioPage() {
               <PurchaseCard
                 logo="/images/token-badge.png"
                 tokenName="HOOPX"
-                tokenPrice={purchaseSession?.rate?.toString() || '0.003'}
+                tokenPrice={
+                  purchaseSession?.rate
+                    ? (typeof purchaseSession.rate === 'string'
+                        ? parseFloat(purchaseSession.rate)
+                        : purchaseSession.rate
+                      ).toFixed(3)
+                    : '0.003'
+                }
                 amount={purchaseSession?.purchasedAmount || 0}
                 tokenAmount={hoopxAmount}
                 className="mb-6"
               />
 
               {/* Purchase Info */}
-              <div className="space-y-3">
-                {/* Purchase Time */}
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70 text-sm">{t('purchaseTime')}</span>
-                  <span className="text-white font-medium text-sm">
-                    {purchaseDetails?.startTime || '2025-10-20 18:00'}
-                  </span>
-                </div>
-
-                {/* Purchase Status */}
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70 text-sm">{t('purchaseStatus')}</span>
-                  <span className="text-white font-medium text-sm">
-                    {t('notReleased')}
-                  </span>
-                </div>
-
-                {/* Vesting Period */}
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70 text-sm">{t('vestingPeriod')}</span>
-                  <span className="text-white font-medium text-sm">
-                    {purchaseSession?.vesting || '12'} {t('months')}
-                  </span>
-                </div>
-
-                {/* Cliff Period */}
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70 text-sm">{t('cliffPeriod')}</span>
-                  <span className="text-white font-medium text-sm">
-                    {purchaseSession?.cliff || '3'} {t('months')}
-                  </span>
-                </div>
-
-                {/* Release Frequency */}
-                <div className="flex justify-between items-center">
-                  <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
-                  <span className="text-white font-medium text-sm">
-                    {(() => {
+              <InfoListCard
+                items={[
+                  {
+                    label: t('purchaseTime'),
+                    value: purchaseDetails?.startTime || '2025-10-20 18:00',
+                  },
+                  {
+                    label: t('purchaseStatus'),
+                    value: t('notReleased'),
+                  },
+                  {
+                    label: t('vestingPeriod'),
+                    value: `${purchaseSession?.vesting || '12'} ${t('months')}`,
+                  },
+                  {
+                    label: t('cliffPeriod'),
+                    value: `${purchaseSession?.cliff || '3'} ${t('months')}`,
+                  },
+                  {
+                    label: t('releaseFrequency'),
+                    value: (() => {
                       const freq = parseInt(purchaseSession?.vestingFrequency || '1');
                       return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
-                    })()}
-                  </span>
-                </div>
-              </div>
+                    })(),
+                  },
+                ]}
+              />
             </>
           )}
 

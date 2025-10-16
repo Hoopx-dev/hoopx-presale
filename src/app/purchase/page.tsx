@@ -10,6 +10,7 @@ import TransactionStatusModal from '@/components/transaction-status-modal';
 import TermsModal from '@/components/terms-modal';
 import Toast, { ToastType } from '@/components/toast';
 import { Button } from '@/components/ui/button';
+import InfoListCard from '@/components/ui/info-list-card';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/solana/transfer';
@@ -113,9 +114,10 @@ export default function PurchasePage() {
 
   const displayRate = useMemo(() => {
     if (!purchaseDetails?.rate) return '0.003';
-    return typeof purchaseDetails.rate === 'string'
-      ? purchaseDetails.rate
-      : purchaseDetails.rate.toString();
+    const rate = typeof purchaseDetails.rate === 'string'
+      ? parseFloat(purchaseDetails.rate)
+      : purchaseDetails.rate;
+    return rate.toFixed(3);
   }, [purchaseDetails?.rate]);
 
   const rateNumber = useMemo(() => {
@@ -263,80 +265,59 @@ export default function PurchasePage() {
           </div>
 
           {/* Summary Cards */}
-          <div className="space-y-3 mb-6">
-            {/* Current Price */}
-            <div className="bg-white/10 rounded-xl p-4 flex justify-between items-center">
-              <span className="text-white/70 text-sm">{t('currentPrice')}</span>
-              <span className="text-white font-bold text-lg">
-                {detailsLoading ? '...' : displayRate}
-              </span>
-            </div>
-
-            {/* Purchase Limit */}
-            <div className="bg-white/10 rounded-xl p-4 flex justify-between items-center">
-              <span className="text-white/70 text-sm">{t('purchaseLimit')}</span>
-              <span className="text-white font-bold text-lg">
-                {detailsLoading ? '...' : `${formatNumber(maxTier)} USDT`}
-              </span>
-            </div>
-
-            {/* Current Assets */}
-            <div className="bg-white/10 rounded-xl p-4 flex justify-between items-center">
-              <span className="text-white/70 text-sm">{t('currentAssets')}</span>
-              <span className="text-white font-bold text-lg">
-                {purchaseSession?.purchasedAmount
+          <InfoListCard
+            items={[
+              {
+                label: t('currentPrice'),
+                value: detailsLoading ? '...' : `${displayRate} USDT/HOOPX`,
+                valueColor: 'text-success',
+              },
+              {
+                label: t('purchaseLimit'),
+                value: detailsLoading ? '...' : `${formatNumber(maxTier)} USDT`,
+              },
+              {
+                label: t('currentAssets'),
+                value: purchaseSession?.purchasedAmount
                   ? `${formatNumber(purchaseSession.purchasedAmount)} HOOPX`
-                  : '0 HOOPX'
-                }
-              </span>
-            </div>
-          </div>
+                  : '0 HOOPX',
+              },
+            ]}
+            className="mb-6"
+          />
 
           {/* Purchase Details */}
-          <div className="bg-white/10 rounded-xl p-5 mb-6">
-            <h2 className="text-white font-bold text-lg mb-4">{t('purchaseDetails')}</h2>
-
-            <div className="space-y-3">
-              {/* HOOPX to Receive */}
-              <div className="flex justify-between items-center">
-                <span className="text-white/70 text-sm">{t('hoopxReceive')}</span>
-                <span className="text-cyan-400 font-bold text-lg">
-                  {selectedTier ? formatNumber(hoopxAmount) : '0'}
-                </span>
-              </div>
-
-              {/* Vesting Period */}
-              <div className="flex justify-between items-center">
-                <span className="text-white/70 text-sm">{t('vestingPeriod')}</span>
-                <span className="text-white font-medium">
-                  {detailsLoading ? '...' : `${purchaseDetails?.vesting || '12'} ${t('months')}`}
-                </span>
-              </div>
-
-              {/* Cliff Period */}
-              <div className="flex justify-between items-center">
-                <span className="text-white/70 text-sm">{t('cliffPeriod')}</span>
-                <span className="text-white font-medium">
-                  {detailsLoading ? '...' : `${purchaseDetails?.cliff || '3'} ${t('months')}`}
-                </span>
-              </div>
-
-              {/* Release Frequency */}
-              <div className="flex justify-between items-center">
-                <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
-                <span className="text-white font-medium">
-                  {detailsLoading
-                    ? '...'
-                    : (() => {
-                        const freq = parseInt(purchaseDetails?.vestingFrequency || '1');
-                        return freq === 1
-                          ? t('perMonth')
-                          : `/${freq}${t('months')}`;
-                      })()}
-                </span>
-              </div>
-            </div>
-          </div>
+          <InfoListCard
+            sectionLabel={t('purchaseDetails')}
+            items={[
+              {
+                label: t('hoopxReceive'),
+                value: selectedTier ? formatNumber(hoopxAmount) : '0',
+              },
+              {
+                label: t('vestingPeriod'),
+                value: detailsLoading
+                  ? '...'
+                  : `${purchaseDetails?.vesting || '12'} ${t('months')}`,
+              },
+              {
+                label: t('cliffPeriod'),
+                value: detailsLoading
+                  ? '...'
+                  : `${purchaseDetails?.cliff || '3'} ${t('months')}`,
+              },
+              {
+                label: t('releaseFrequency'),
+                value: detailsLoading
+                  ? '...'
+                  : (() => {
+                      const freq = parseInt(purchaseDetails?.vestingFrequency || '1');
+                      return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
+                    })(),
+              },
+            ]}
+            className="mb-6"
+          />
 
           {/* Buy Button */}
           <Button

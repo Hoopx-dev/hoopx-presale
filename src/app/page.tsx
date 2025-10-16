@@ -53,8 +53,10 @@ export default function Home() {
   const maxTier = purchaseDetails?.tiers?.[purchaseDetails.tiers.length - 1] || 5000;
   const rate = purchaseDetails?.rate || '0.003';
 
-  // Format rate number
-  const displayRate = typeof rate === 'string' ? parseFloat(rate) : rate;
+  // Format rate to 3 decimal places
+  const displayRate = typeof rate === 'string'
+    ? parseFloat(rate).toFixed(3)
+    : rate.toFixed(3);
 
   return (
     <div className="min-h-screen">
