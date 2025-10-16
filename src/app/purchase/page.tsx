@@ -9,10 +9,10 @@ import ConfirmationModal from '@/components/confirmation-modal';
 import TransactionStatusModal from '@/components/transaction-status-modal';
 import TermsModal from '@/components/terms-modal';
 import Toast, { ToastType } from '@/components/toast';
+import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession, useRegisterPurchase } from '@/lib/purchase/hooks';
 import { useUIStore } from '@/lib/store/useUIStore';
 import { transferUSDT, getEstimatedFee, createSolanaConnection } from '@/lib/solana/transfer';
-import { IoCheckmarkCircle } from 'react-icons/io5';
 
 export default function PurchasePage() {
   const t = useTranslations('purchase');
@@ -25,6 +25,7 @@ export default function PurchasePage() {
 
   // Modal states
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [transactionStatus, setTransactionStatus] = useState<'sending' | 'success'>('sending');
   const [transactionId, setTransactionId] = useState<string>('');
@@ -140,8 +141,8 @@ export default function PurchasePage() {
     }
 
     try {
-      // Close confirmation modal (Phantom wallet will open)
-      setShowConfirmModal(false);
+      // Set loading state on confirm button
+      setConfirmLoading(true);
 
       // Refetch session to ensure wallet hasn't purchased yet
       const { data: latestSession } = await refetchSession();
@@ -173,7 +174,9 @@ export default function PurchasePage() {
         throw new Error(result.error || 'Transfer failed');
       }
 
-      // Transaction signed! Now show sending status
+      // Transaction signed! Close confirmation modal and show sending status
+      setShowConfirmModal(false);
+      setConfirmLoading(false);
       setTransactionStatus('sending');
       setShowStatusModal(true);
 
@@ -199,7 +202,9 @@ export default function PurchasePage() {
         }, 1500);
       }
     } catch (error: unknown) {
-      // Close status modal on error (if it was opened)
+      // Reset loading and close modals on error
+      setConfirmLoading(false);
+      setShowConfirmModal(false);
       setShowStatusModal(false);
 
       // Handle different error types with user-friendly messages
@@ -244,24 +249,16 @@ export default function PurchasePage() {
           {/* Tier Selection Grid */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             {tiers.map((tier) => (
-              <button
+              <Button
                 key={tier}
+                variant={selectedTier === tier ? "secondary-selected" : "secondary"}
+                size="default"
                 onClick={() => setSelectedTier(tier)}
                 disabled={alreadyPurchased || detailsLoading}
-                className={`
-                  relative py-4 px-3 rounded-xl font-bold text-2xl transition-all text-white
-                  ${selectedTier === tier
-                    ? 'border-2 border-green-400'
-                    : 'border border-white/30 hover:border-white/50'
-                  }
-                  ${alreadyPurchased ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                `}
+                showCheckmark={selectedTier === tier}
               >
                 {formatNumber(tier)}
-                {selectedTier === tier && (
-                  <IoCheckmarkCircle className="absolute top-2 left-2 text-green-400 text-2xl" />
-                )}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -328,29 +325,32 @@ export default function PurchasePage() {
               <div className="flex justify-between items-center">
                 <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
                 <span className="text-white font-medium">
-                  {detailsLoading ? '...' : (purchaseDetails?.vestingFrequency || t('monthly'))}
+                  {detailsLoading
+                    ? '...'
+                    : (() => {
+                        const freq = parseInt(purchaseDetails?.vestingFrequency || '1');
+                        return freq === 1
+                          ? t('perMonth')
+                          : `/${freq}${t('months')}`;
+                      })()}
                 </span>
               </div>
             </div>
           </div>
 
           {/* Buy Button */}
-          <button
+          <Button
+            variant={!selectedTier || alreadyPurchased || detailsLoading ? "primary-disabled" : "primary"}
+            size="large"
             onClick={handleBuyClick}
             disabled={!selectedTier || alreadyPurchased || detailsLoading}
-            className={`
-              w-full py-5 px-6 rounded-2xl font-bold text-xl transition-all duration-200
-              ${!selectedTier || alreadyPurchased || detailsLoading
-                ? 'bg-gray-500 text-gray-300 cursor-not-allowed'
-                : 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 cursor-pointer transform hover:scale-105 shadow-lg'
-              }
-            `}
+            className="w-full"
           >
             {selectedTier
               ? `${t('buyButton')} - ${formatNumber(selectedTier)} USDT`
               : t('selectAmount')
             }
-          </button>
+          </Button>
 
           {/* Note */}
           <p className="text-white/50 text-xs text-center mt-4">
@@ -365,8 +365,13 @@ export default function PurchasePage() {
         amount={selectedTier || 0}
         rate={rateNumber}
         estimatedFee={estimatedFee}
+        loading={confirmLoading}
         onConfirm={handleConfirmTransfer}
-        onClose={() => setShowConfirmModal(false)}
+        onClose={() => {
+          if (!confirmLoading) {
+            setShowConfirmModal(false);
+          }
+        }}
       />
 
       <TransactionStatusModal

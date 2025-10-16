@@ -206,9 +206,10 @@ export default function PortfolioPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-white/70 text-sm">{t('releaseFrequency')}</span>
                   <span className="text-white font-medium text-sm">
-                    {purchaseSession?.vestingFrequency === '1'
-                      ? t('perMonth')
-                      : t('per3Months')}
+                    {(() => {
+                      const freq = parseInt(purchaseSession?.vestingFrequency || '1');
+                      return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
+                    })()}
                   </span>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { IoWallet } from 'react-icons/io5';
 import { useWalletStore } from '@/lib/store/useWalletStore';
+import { Button } from './ui/button';
 
 export default function WalletButton() {
   const [mounted, setMounted] = useState(false);
@@ -42,9 +43,9 @@ export default function WalletButton() {
 
   if (!mounted) {
     return (
-      <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-purple-900 font-bold text-sm py-2 px-4 rounded-lg h-10 flex items-center">
-        <span>Connect Wallet</span>
-      </div>
+      <Button variant="primary" size="small">
+        Connect Wallet
+      </Button>
     );
   }
 
@@ -64,13 +65,10 @@ export default function WalletButton() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      <button
+      <Button
+        variant={connected ? "secondary" : "primary"}
+        size="small"
         onClick={handleClick}
-        className={
-          connected
-            ? 'text-white text-base px-4 py-2 rounded-lg border border-white/30 hover:border-white/50 hover:bg-white/10 transition-all cursor-pointer font-medium h-10 flex items-center gap-2'
-            : 'bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 font-bold text-sm py-2 px-4 rounded-lg transition-all cursor-pointer h-10'
-        }
       >
         {connected && publicKey ? (
           <>
@@ -80,7 +78,7 @@ export default function WalletButton() {
         ) : (
           t('connectWallet')
         )}
-      </button>
+      </Button>
 
       {/* Dropdown Menu */}
       {connected && showDropdown && (

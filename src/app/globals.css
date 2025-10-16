@@ -6,8 +6,17 @@
 }
 
 @theme inline {
+  /* Brand Colors */
+  --color-primary: #512784;
+  --color-secondary: #FCB825;
+  --color-success: #31D99C;
+  --color-danger: #FF4B4B;
+
+  /* Background & Foreground */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+
+  /* Font Families */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }

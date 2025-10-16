@@ -7,6 +7,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect, useRef } from 'react';
 import Header from '@/components/header';
+import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
 
 export default function Home() {
@@ -107,12 +108,14 @@ export default function Home() {
           </div>
 
           {/* Buy Button */}
-          <button
+          <Button
+            variant="primary"
+            size="large"
             onClick={handleBuyClick}
-            className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-purple-900 font-bold text-xl py-5 px-6 rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-lg mb-4 cursor-pointer"
+            className="w-full mb-4"
           >
             {t('buyNow')}
-          </button>
+          </Button>
 
           {/* Purchase Range */}
           <p className="text-white/70 text-sm text-center">
