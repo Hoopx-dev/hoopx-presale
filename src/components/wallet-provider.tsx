@@ -5,7 +5,6 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { SolanaMobileWalletAdapter } from '@solana-mobile/wallet-adapter-mobile';
-import { useWrappedReownAdapter } from '@jup-ag/jup-mobile-adapter';
 import { clusterApiUrl } from '@solana/web3.js';
 
 // Import wallet adapter CSS
@@ -21,31 +20,11 @@ const isMobile = () => {
   return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 };
 
-// Inner component that uses the Jupiter adapter hook
-const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children }) => {
+export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
   const endpoint = useMemo(
     () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'),
     []
   );
-
-  // Initialize Jupiter Mobile adapter with WalletConnect
-  const { reownAdapter, jupiterAdapter } = useWrappedReownAdapter({
-    appKitOptions: {
-      metadata: {
-        name: 'HOOPX Token Presale',
-        description: 'HOOPX is a token presale platform built on the Solana blockchain',
-        url: typeof window !== 'undefined' ? window.location.origin : 'https://hoopx.gg',
-        icons: ['/images/coin.png'],
-      },
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
-      features: {
-        analytics: false,
-        socials: [],
-        email: false,
-      },
-      enableWallets: false,
-    },
-  });
 
   // Configure supported wallets based on platform
   const wallets = useMemo(() => {
@@ -78,15 +57,12 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
       ];
     }
 
-    // Desktop: Use standard wallet adapters + Jupiter WalletConnect
-    const standardWallets = [
+    // Desktop: Use standard wallet adapters (Phantom, Solflare)
+    return [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ];
-    const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
-
-    return [...standardWallets, ...jupiterWallets];
-  }, [reownAdapter, jupiterAdapter]);
+  }, []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
@@ -96,6 +72,3 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
     </ConnectionProvider>
   );
 };
-
-// Export the Jupiter-enabled wallet provider as the main export
-export const WalletContextProvider = WalletProviderWithJupiter;
