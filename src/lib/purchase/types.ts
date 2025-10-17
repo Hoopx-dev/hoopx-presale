@@ -23,6 +23,7 @@ export interface FetchSessionVO {
   cliff: string;
   vesting: string;
   vestingFrequency: string;
+  subscriptionTime: string; // User's purchase/subscription time
 }
 
 export interface RegisterPurchaseDTO {

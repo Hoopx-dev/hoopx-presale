@@ -8,7 +8,7 @@ import Header from '@/components/header';
 import PurchaseCard from '@/components/ui/purchase-card';
 import TransactionCard from '@/components/ui/transaction-card';
 import InfoListCard from '@/components/ui/info-list-card';
-import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
+import { usePurchaseSession } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
 import { getExplorerUrl } from '@/lib/solana/transactions';
 
@@ -16,7 +16,6 @@ export default function PortfolioPage() {
   const t = useTranslations('portfolio');
   const router = useRouter();
   const { connected, publicKey } = useWallet();
-  const { data: purchaseDetails } = usePurchaseDetails();
   const { data: purchaseSession, isLoading } = usePurchaseSession(publicKey?.toBase58());
 
   // Tab state: 'purchase' or 'transactions'
@@ -166,7 +165,7 @@ export default function PortfolioPage() {
                 items={[
                   {
                     label: t('purchaseTime'),
-                    value: purchaseDetails?.startTime || '2025-10-20 18:00',
+                    value: purchaseSession?.subscriptionTime || '-',
                   },
                   {
                     label: t('purchaseStatus'),
