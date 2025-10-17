@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useEffect, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
@@ -15,11 +15,18 @@ function HomeContent() {
   const t = useTranslations('home');
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { connected, publicKey } = useWallet();
+  const { connected, connecting, publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
   const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
   const { setReferralAddress } = useReferralStore();
+
+  // Mounted state to prevent redirect during initial wallet reconnection
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Track current page for terms modal logic
   useEffect(() => {
@@ -34,8 +41,24 @@ function HomeContent() {
     }
   }, [searchParams, setReferralAddress]);
 
-  // No auto-redirect on homepage - let user navigate via Buy Now button
-  // Rule #3 handled by Buy Now button logic below
+  // Redirect to portfolio if connected with successful purchase (Rule #3)
+  useEffect(() => {
+    // Don't redirect on initial mount - give wallet time to reconnect
+    if (!mounted) return;
+
+    // Wait for wallet to finish connecting/reconnecting before redirecting
+    if (connecting) return;
+
+    // Only redirect if fully connected and session data is available
+    if (connected && publicKey && purchaseSession !== undefined) {
+      const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulPurchase) {
+        router.push('/portfolio');
+      }
+    }
+  }, [mounted, connected, connecting, publicKey, purchaseSession, router]);
 
   // Handle buy button click
   const handleBuyClick = () => {
