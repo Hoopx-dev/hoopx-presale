@@ -6,10 +6,6 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
-import {
-  PhantomWalletAdapter,
-  SolflareWalletAdapter,
-} from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 import { FC, ReactNode, useMemo } from "react";
 
@@ -19,12 +15,6 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 interface WalletContextProviderProps {
   children: ReactNode;
 }
-
-// Detect Android devices
-const isAndroid = () => {
-  if (typeof window === "undefined") return false;
-  return /android/i.test(navigator.userAgent);
-};
 
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({
   children,
@@ -58,19 +48,11 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     },
   });
 
-  // Configure supported wallets based on platform
-  // Android: Use Mobile Wallet Adapter (MWA) for proper deep link handling
-  // iOS/Desktop: Use standard wallet adapters
-  // Note: iOS does not support MWA due to background execution limitations
-  // iOS Chrome users should use Safari or wallet in-app browsers for best experience
+  // Configure supported wallets - use reownAdapter and jupiterAdapter for all platforms
+  // Works for Android, iOS, and Desktop browsers
   const wallets = useMemo(() => {
-    if (isAndroid()) {
-      return [reownAdapter, jupiterAdapter];
-    }
-
-    // iOS and Desktop: Use standard wallet adapters
-    return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
-  }, []);
+    return [reownAdapter, jupiterAdapter];
+  }, [reownAdapter, jupiterAdapter]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
