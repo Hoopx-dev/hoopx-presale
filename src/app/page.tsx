@@ -36,15 +36,20 @@ function HomeContent() {
 
   // Redirect to portfolio if connected with successful purchase (Rule #3)
   useEffect(() => {
-    if (connected) {
+    // Only redirect if fully connected and session data is available
+    if (connected && publicKey && purchaseSession !== undefined) {
       const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
         order => order.purchaseStatus === 1
       );
       if (hasSuccessfulPurchase) {
-        router.push('/portfolio');
+        // Small delay to ensure wallet connection is stable
+        const timer = setTimeout(() => {
+          router.push('/portfolio');
+        }, 100);
+        return () => clearTimeout(timer);
       }
     }
-  }, [connected, purchaseSession, router]);
+  }, [connected, publicKey, purchaseSession, router]);
 
   // Handle buy button click
   const handleBuyClick = () => {
