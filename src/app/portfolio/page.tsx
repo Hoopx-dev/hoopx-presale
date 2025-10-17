@@ -115,11 +115,15 @@ export default function PortfolioPage() {
     }
   }, [mounted, connected, connecting, successfulOrders, isLoading, router]);
 
-  // Calculate total HOOPX amount from all successful orders
+  // Calculate total HOOPX amount from all successful orders (round down)
   const totalHoopxAmount = useMemo(() => {
-    return successfulOrders.reduce((total, order) => {
-      return total + (order.amount / order.rate);
+    const total = successfulOrders.reduce((sum, order) => {
+      return sum + (order.amount / order.rate);
     }, 0);
+    // Round down to 2 decimals if >= 100, otherwise 6 decimals
+    const decimals = total >= 100 ? 2 : 6;
+    const multiplier = Math.pow(10, decimals);
+    return Math.floor(total * multiplier) / multiplier;
   }, [successfulOrders]);
 
   const formatTokenAmount = (num: number | undefined | null) => {
@@ -128,10 +132,11 @@ export default function PortfolioPage() {
     const decimals = num >= 100 ? 2 : 6;
     const multiplier = Math.pow(10, decimals);
     const roundedDown = Math.floor(num * multiplier) / multiplier;
-    return roundedDown.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: decimals
-    });
+
+    // Format with proper decimal places without rounding
+    const [intPart, decPart = ''] = roundedDown.toFixed(decimals).split('.');
+    const formattedInt = parseInt(intPart).toLocaleString('en-US');
+    return decPart ? `${formattedInt}.${decPart}` : formattedInt;
   };
 
   // Get date label for transaction
