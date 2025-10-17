@@ -184,7 +184,9 @@
     "loadingTransactions": "加载中...",
     "to": "至",
     "from": "来自",
-    "buyNow": "购买新一轮"
+    "buyNow": "购买新一轮",
+    "newPresaleAvailable": "新的预售活动可用！",
+    "buyNowButton": "立即购买"
   },
   "terms": {
     "title": "条款与条件",

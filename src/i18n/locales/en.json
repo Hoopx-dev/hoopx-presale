@@ -184,7 +184,9 @@
     "loadingTransactions": "Loading transactions...",
     "to": "To",
     "from": "From",
-    "buyNow": "Buy New Round"
+    "buyNow": "Buy New Round",
+    "newPresaleAvailable": "New presale available!",
+    "buyNowButton": "BUY NOW"
   },
   "terms": {
     "title": "Terms and Conditions",

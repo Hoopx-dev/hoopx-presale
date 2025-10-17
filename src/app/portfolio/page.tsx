@@ -309,9 +309,9 @@ export default function PortfolioPage() {
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-yellow-500 text-2xl">•</span>
-                    <span className="text-white font-medium">New presale available!</span>
+                    <span className="text-white font-medium">{t('newPresaleAvailable')}</span>
                   </div>
-                  <span className="text-yellow-500 font-bold text-lg">BUY NOW</span>
+                  <span className="text-yellow-500 font-bold text-lg">{t('buyNowButton')}</span>
                 </div>
               )}
             </div>
