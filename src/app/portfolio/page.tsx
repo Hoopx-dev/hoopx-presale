@@ -66,7 +66,7 @@ function TransactionItem({ order, index, t, getDateLabel }: {
 export default function PortfolioPage() {
   const t = useTranslations('portfolio');
   const router = useRouter();
-  const { connected, publicKey } = useWallet();
+  const { connected, connecting, publicKey } = useWallet();
   const { data: purchaseSession, isLoading } = usePurchaseSession(publicKey?.toBase58());
   const { data: purchaseDetails } = usePurchaseDetails();
 
@@ -94,12 +94,16 @@ export default function PortfolioPage() {
 
   // Redirect if not connected or no purchase (Rules #1, #2)
   useEffect(() => {
+    // Wait for wallet to finish connecting/reconnecting before redirecting
+    if (connecting) return;
+
+    // Only redirect if truly disconnected (not just reconnecting on page refresh)
     if (!connected) {
       router.push('/');
     } else if (!isLoading && successfulOrders.length === 0) {
       router.push('/'); // Rule #2: Empty session redirects to homepage
     }
-  }, [connected, successfulOrders, isLoading, router]);
+  }, [connected, connecting, successfulOrders, isLoading, router]);
 
   // Calculate total HOOPX amount from all successful orders
   const totalHoopxAmount = useMemo(() => {
@@ -144,8 +148,9 @@ export default function PortfolioPage() {
     }
   };
 
-  if (!connected || successfulOrders.length === 0) {
-    return null; // Will redirect
+  // Show loading while wallet is connecting/reconnecting
+  if (connecting || (!connected && successfulOrders.length === 0)) {
+    return null; // Will redirect or still connecting
   }
 
   return (
