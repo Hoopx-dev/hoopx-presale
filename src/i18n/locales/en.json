@@ -183,7 +183,8 @@
     "noTransactions": "No transfer records",
     "loadingTransactions": "Loading transactions...",
     "to": "To",
-    "from": "From"
+    "from": "From",
+    "buyNow": "Buy New Round"
   },
   "terms": {
     "title": "Terms and Conditions",
