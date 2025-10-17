@@ -1,7 +1,6 @@
 "use client";
 
 import { useWrappedReownAdapter } from "@jup-ag/jup-mobile-adapter";
-import { SolanaMobileWalletAdapter } from "@solana-mobile/wallet-adapter-mobile";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -41,17 +40,21 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     appKitOptions: {
       metadata: {
         name: "HOOPX Token Presale",
-        description: "Join the HOOPX presale and be part of the future of basketball on blockchain",
-        url: typeof window !== "undefined" ? window.location.origin : "https://hoopx.gg",
-        icons: ["/images/coin.png"],
+        description:
+          "Join the HOOPX presale and be part of the future of basketball on blockchain",
+        url:
+          typeof window !== "undefined"
+            ? window.location.origin
+            : "https://hoopx.gg",
+        icons: ["/images/token-badge.png"],
       },
-      projectId: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "",
+      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
       features: {
         analytics: false,
-        socials: ["google", "x", "apple"],
+        socials: false,
         email: false,
       },
-      enableWallets: false,
+      enableWallets: true,
     },
   });
 
@@ -62,30 +65,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
   // iOS Chrome users should use Safari or wallet in-app browsers for best experience
   const wallets = useMemo(() => {
     if (isAndroid()) {
-      return [
-        new SolanaMobileWalletAdapter({
-          addressSelector: {
-            select: async (addresses) => addresses[0],
-          },
-          appIdentity: {
-            name: "HOOPX Token Presale",
-            uri:
-              typeof window !== "undefined"
-                ? window.location.origin
-                : "https://hoopx.gg",
-            icon: "/images/coin.png",
-          },
-          authorizationResultCache: {
-            get: async () => Promise.resolve(undefined),
-            set: async () => Promise.resolve(),
-            clear: async () => Promise.resolve(),
-          },
-          chain: "solana:mainnet",
-          onWalletNotFound: async () => {
-            window.open("https://phantom.app/", "_blank");
-          },
-        }),
-      ];
+      return [reownAdapter, jupiterAdapter];
     }
 
     // iOS and Desktop: Use standard wallet adapters
@@ -94,7 +74,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={!isAndroid()}>
+      <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
