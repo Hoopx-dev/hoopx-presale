@@ -1,5 +1,6 @@
 "use client";
 
+import { useWrappedReownAdapter } from "@jup-ag/jup-mobile-adapter";
 import { SolanaMobileWalletAdapter } from "@solana-mobile/wallet-adapter-mobile";
 import {
   ConnectionProvider,
@@ -35,6 +36,24 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
       process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"),
     []
   );
+
+  const { reownAdapter, jupiterAdapter } = useWrappedReownAdapter({
+    appKitOptions: {
+      metadata: {
+        name: "HOOPX Token Presale",
+        description: "Join the HOOPX presale and be part of the future of basketball on blockchain",
+        url: typeof window !== "undefined" ? window.location.origin : "https://hoopx.gg",
+        icons: ["/images/coin.png"],
+      },
+      projectId: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID || "",
+      features: {
+        analytics: false,
+        socials: ["google", "x", "apple"],
+        email: false,
+      },
+      enableWallets: false,
+    },
+  });
 
   // Configure supported wallets based on platform
   // Android: Use Mobile Wallet Adapter (MWA) for proper deep link handling
