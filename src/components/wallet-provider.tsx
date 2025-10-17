@@ -28,13 +28,22 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   );
 
   // Configure supported wallets based on platform
-  // Android: Use Mobile Wallet Adapter (MWA) for proper deep link handling
-  // iOS/Desktop: Use standard wallet adapters
+  // Android: Use both standard adapters AND Mobile Wallet Adapter (MWA)
+  // - Standard adapters show in the modal UI
+  // - MWA provides better connection reliability on Android via Intent system
+  // iOS/Desktop: Use standard wallet adapters only
   // Note: iOS does not support MWA due to background execution limitations
-  // iOS Chrome users should use Safari or wallet in-app browsers for best experience
   const wallets = useMemo(() => {
+    const standardWallets = [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ];
+
     if (isAndroid()) {
+      // On Android, include MWA as an additional option
+      // The standard wallets will appear in the modal for user selection
       return [
+        ...standardWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
             select: async (addresses) => addresses[0],
@@ -58,10 +67,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
     }
 
     // iOS and Desktop: Use standard wallet adapters
-    return [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ];
+    return standardWallets;
   }, []);
 
   return (
