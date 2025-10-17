@@ -95,15 +95,17 @@ export default function PurchasePage() {
     }
   }, [connected, router]);
 
-  // Redirect if already purchased
+  // Redirect if already purchased current activity
   useEffect(() => {
-    const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
-      order => order.purchaseStatus === 1
-    );
-    if (!sessionLoading && hasSuccessfulPurchase) {
-      router.push('/portfolio');
+    if (!sessionLoading && purchaseDetails?.activityId) {
+      const hasPurchasedCurrentActivity = purchaseSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1 && order.activityId === purchaseDetails.activityId
+      );
+      if (hasPurchasedCurrentActivity) {
+        router.push('/portfolio');
+      }
     }
-  }, [purchaseSession, sessionLoading, router]);
+  }, [purchaseSession, sessionLoading, purchaseDetails?.activityId, router]);
 
   // Get estimated fee
   useEffect(() => {
@@ -150,10 +152,13 @@ export default function PurchasePage() {
     });
   };
 
-  // Check if wallet already purchased
-  const alreadyPurchased = purchaseSession?.orderVoList?.some(
-    order => order.purchaseStatus === 1
-  ) || false;
+  // Check if wallet already purchased current activity
+  const alreadyPurchased = useMemo(() => {
+    if (!purchaseDetails?.activityId) return false;
+    return purchaseSession?.orderVoList?.some(
+      order => order.purchaseStatus === 1 && order.activityId === purchaseDetails.activityId
+    ) || false;
+  }, [purchaseSession, purchaseDetails?.activityId]);
 
   // Handle terms acceptance
   const handleAcceptTerms = () => {
@@ -219,12 +224,12 @@ export default function PurchasePage() {
       // Set loading state on confirm button
       setConfirmLoading(true);
 
-      // Refetch session to ensure wallet hasn't purchased yet
+      // Refetch session to ensure wallet hasn't purchased current activity yet
       const { data: latestSession } = await refetchSession();
 
-      // Check if wallet already purchased (double-purchase prevention)
+      // Check if wallet already purchased current activity (double-purchase prevention)
       const hasExistingPurchase = latestSession?.orderVoList?.some(
-        order => order.purchaseStatus === 1
+        order => order.purchaseStatus === 1 && order.activityId === purchaseDetails.activityId
       );
       if (hasExistingPurchase) {
         showToastNotification(tError('alreadyPurchasedError'), 'error');
