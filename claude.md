@@ -1400,6 +1400,14 @@ NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_API_KEY
 
 ### Common Issues
 
+**Issue: Phantom wallet doesn't work on first click (Chrome iOS only)**
+- **Cause**: Chrome on iOS has limitations with custom URL scheme deep links (`phantom://`, `solflare://`)
+- **Behavior**: First click on Phantom does nothing. After clicking Solflare (or refreshing), Phantom works
+- **Solution**: This is a known Chrome iOS limitation. Users should:
+  - Use Safari or Arc browser on iOS for best wallet experience (both work correctly)
+  - OR click Phantom twice / try another wallet first to "warm up" the adapters
+- **Note**: This only affects Chrome browser on iOS. Desktop Chrome and other mobile browsers work fine.
+
 **Issue: Transaction fails with "403 Forbidden"**
 - **Cause**: Public Solana RPC rate limiting
 - **Solution**: Configure Helius or other paid RPC in `NEXT_PUBLIC_SOLANA_RPC_URL`
