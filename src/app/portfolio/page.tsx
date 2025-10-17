@@ -8,63 +8,105 @@ import Header from '@/components/header';
 import PurchaseCard from '@/components/ui/purchase-card';
 import TransactionCard from '@/components/ui/transaction-card';
 import InfoListCard from '@/components/ui/info-list-card';
-import { usePurchaseSession } from '@/lib/purchase/hooks';
+import { Button } from '@/components/ui/button';
+import { usePurchaseSession, usePurchaseDetails } from '@/lib/purchase/hooks';
 import { useTransaction } from '@/lib/solana/hooks';
 import { getExplorerUrl } from '@/lib/solana/transactions';
+import type { OrderVO } from '@/lib/purchase/types';
+
+// Component for rendering individual transaction
+function TransactionItem({ order, index, t, getDateLabel }: {
+  order: OrderVO;
+  index: number;
+  t: (key: string) => string;
+  getDateLabel: (timestamp: number) => string;
+}) {
+  const { data: transaction, isLoading: txLoading } = useTransaction(order.trxId);
+
+  if (txLoading) {
+    return (
+      <div key={order.trxId || index} className="text-white/50 text-center py-4">
+        {t('loadingTransactions')}
+      </div>
+    );
+  }
+
+  if (!transaction) {
+    return (
+      <div key={order.trxId || index} className="text-white/50 text-center py-4">
+        {t('noTransactions')}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Date Header */}
+      {index === 0 && (
+        <h3 className="text-white text-sm mb-3">
+          {getDateLabel(transaction.timestamp)}
+        </h3>
+      )}
+
+      {/* Transaction Card */}
+      <TransactionCard
+        logo={transaction.tokenLogo || ''}
+        tokenSymbol={transaction.tokenSymbol}
+        amount={transaction.amount}
+        address={transaction.to}
+        timestamp={transaction.timestamp}
+        statusLabel={t('transferred')}
+        isOutgoing={true}
+        onClick={() => window.open(getExplorerUrl(transaction.signature), '_blank')}
+      />
+    </div>
+  );
+}
 
 export default function PortfolioPage() {
   const t = useTranslations('portfolio');
   const router = useRouter();
   const { connected, publicKey } = useWallet();
   const { data: purchaseSession, isLoading } = usePurchaseSession(publicKey?.toBase58());
+  const { data: purchaseDetails } = usePurchaseDetails();
 
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<'purchase' | 'transactions'>('purchase');
 
-  // Get the first successful order from orderVoList
-  const successfulOrder = useMemo(() => {
-    return purchaseSession?.orderVoList?.find(order => order.purchaseStatus === 1);
+  // Collapsible state: track which order's details are expanded (by index)
+  const [expandedOrderIndex, setExpandedOrderIndex] = useState<number>(0);
+
+  // Get all successful orders from orderVoList
+  const successfulOrders = useMemo(() => {
+    return purchaseSession?.orderVoList?.filter(order => order.purchaseStatus === 1) || [];
   }, [purchaseSession]);
 
-  // Fetch the specific transaction from the session using just the trxId
-  const { data: transaction, isLoading: transactionLoading } = useTransaction(
-    successfulOrder?.trxId
-  );
+  // Check if user has purchased current active activity
+  const hasPurchasedCurrentActivity = useMemo(() => {
+    if (!purchaseDetails?.activityId) return false;
+    return successfulOrders.some(order => order.activityId === purchaseDetails.activityId);
+  }, [successfulOrders, purchaseDetails]);
 
   // Track current page for terms modal logic
   useEffect(() => {
     sessionStorage.setItem('hoopx-current-page', 'portfolio');
   }, []);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[Portfolio] Transaction query params:');
-    console.log('  - trxId:', successfulOrder?.trxId);
-    console.log('  - isLoading:', transactionLoading);
-    console.log('  - transaction:', transaction);
-    if (transaction) {
-      console.log('  - tokenSymbol:', transaction.tokenSymbol);
-      console.log('  - tokenLogo:', transaction.tokenLogo);
-      console.log('  - tokenMint:', transaction.tokenMint);
-      console.log('  - amount:', transaction.amount);
-      console.log('  - to:', transaction.to);
-    }
-  }, [successfulOrder?.trxId, transactionLoading, transaction]);
-
   // Redirect if not connected or no purchase
   useEffect(() => {
     if (!connected) {
       router.push('/');
-    } else if (!isLoading && !successfulOrder) {
+    } else if (!isLoading && successfulOrders.length === 0) {
       router.push('/purchase');
     }
-  }, [connected, successfulOrder, isLoading, router]);
+  }, [connected, successfulOrders, isLoading, router]);
 
-  // Calculate HOOPX amount
-  const hoopxAmount = useMemo(() => {
-    if (!successfulOrder?.amount || !successfulOrder?.rate) return 0;
-    return successfulOrder.amount / successfulOrder.rate;
-  }, [successfulOrder]);
+  // Calculate total HOOPX amount from all successful orders
+  const totalHoopxAmount = useMemo(() => {
+    return successfulOrders.reduce((total, order) => {
+      return total + (order.amount / order.rate);
+    }, 0);
+  }, [successfulOrders]);
 
   const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return '0';
@@ -102,7 +144,7 @@ export default function PortfolioPage() {
     }
   };
 
-  if (!connected || !successfulOrder) {
+  if (!connected || successfulOrders.length === 0) {
     return null; // Will redirect
   }
 
@@ -116,7 +158,7 @@ export default function PortfolioPage() {
           <div className="text-center mb-8">
             <p className="text-white/70 text-sm mb-2">{t('totalAssets')}</p>
             <p className="text-white text-6xl font-bold mb-1">
-              {formatTokenAmount(hoopxAmount)}
+              {formatTokenAmount(totalHoopxAmount)}
             </p>
             <p className="text-white text-xl">HOOPX</p>
           </div>
@@ -147,89 +189,103 @@ export default function PortfolioPage() {
 
           {/* Tab Content */}
           {activeTab === 'purchase' && (
-            <>
-              {/* Purchase Card */}
-              <PurchaseCard
-                logo="/images/token-badge.png"
-                tokenName="HOOPX"
-                tokenPrice={
-                  successfulOrder?.rate
-                    ? (typeof successfulOrder.rate === 'string'
-                        ? parseFloat(successfulOrder.rate)
-                        : successfulOrder.rate
-                      ).toString()
-                    : '0.003'
-                }
-                amount={successfulOrder?.amount || 0}
-                tokenAmount={hoopxAmount}
-                className="mb-6"
-              />
+            <div className="space-y-4">
+              {/* Purchase Cards - one per successful order */}
+              {successfulOrders.map((order, index) => {
+                const orderHoopxAmount = order.amount / order.rate;
+                const isExpanded = expandedOrderIndex === index;
 
-              {/* Purchase Info */}
-              <InfoListCard
-                items={[
-                  {
-                    label: t('purchaseTime'),
-                    value: successfulOrder?.subscriptionTime || '-',
-                  },
-                  {
-                    label: t('purchaseStatus'),
-                    value: t('notReleased'),
-                  },
-                  {
-                    label: t('vestingPeriod'),
-                    value: `${successfulOrder?.vesting || '12'} ${t('months')}`,
-                  },
-                  {
-                    label: t('cliffPeriod'),
-                    value: `${successfulOrder?.cliff || '3'} ${t('months')}`,
-                  },
-                  {
-                    label: t('releaseFrequency'),
-                    value: (() => {
-                      const freq = parseInt(successfulOrder?.vestingFrequency || '1');
-                      return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
-                    })(),
-                  },
-                ]}
-              />
-            </>
+                return (
+                  <div key={order.trxId || index}>
+                    {/* Purchase Card - clickable to toggle details */}
+                    <div
+                      onClick={() => setExpandedOrderIndex(isExpanded ? -1 : index)}
+                      className="cursor-pointer"
+                    >
+                      <PurchaseCard
+                        logo="/images/token-badge.png"
+                        tokenName={order.activityName}
+                        tokenPrice={
+                          order.rate
+                            ? (typeof order.rate === 'string'
+                                ? parseFloat(order.rate)
+                                : order.rate
+                              ).toString()
+                            : '0.003'
+                        }
+                        amount={order.amount}
+                        tokenAmount={orderHoopxAmount}
+                        className="mb-2"
+                      />
+                    </div>
+
+                    {/* Collapsible Purchase Details */}
+                    {isExpanded && (
+                      <InfoListCard
+                        items={[
+                          {
+                            label: t('purchaseTime'),
+                            value: order.subscriptionTime || '-',
+                          },
+                          {
+                            label: t('purchaseStatus'),
+                            value: t('notReleased'),
+                          },
+                          {
+                            label: t('vestingPeriod'),
+                            value: `${order.vesting || '12'} ${t('months')}`,
+                          },
+                          {
+                            label: t('cliffPeriod'),
+                            value: `${order.cliff || '3'} ${t('months')}`,
+                          },
+                          {
+                            label: t('releaseFrequency'),
+                            value: (() => {
+                              const freq = parseInt(order.vestingFrequency || '1');
+                              return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
+                            })(),
+                          },
+                        ]}
+                        className="mb-4"
+                      />
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Buy Button for Current Activity (if not purchased) */}
+              {purchaseDetails && !hasPurchasedCurrentActivity && (
+                <Button
+                  variant="primary"
+                  size="large"
+                  onClick={() => router.push('/purchase')}
+                  className="w-full mt-6"
+                >
+                  {t('buyNow')} - {purchaseDetails.activityId}
+                </Button>
+              )}
+            </div>
           )}
 
           {activeTab === 'transactions' && (
             <div className="space-y-4">
-              {transactionLoading && (
-                <p className="text-white/50 text-center py-8">{t('loadingTransactions')}</p>
-              )}
+              {/* Transaction Cards - one per successful order */}
+              {successfulOrders.map((order, index) => (
+                <TransactionItem
+                  key={order.trxId || index}
+                  order={order}
+                  index={index}
+                  t={t}
+                  getDateLabel={getDateLabel}
+                />
+              ))}
 
-              {!transactionLoading && !transaction && (
-                <p className="text-white/50 text-center py-8">{t('noTransactions')}</p>
-              )}
-
-              {!transactionLoading && transaction && (
-                <>
-                  {/* Date Header */}
-                  <h3 className="text-white text-sm mb-3">
-                    {getDateLabel(transaction.timestamp)}
-                  </h3>
-
-                  {/* Transaction Card */}
-                  <TransactionCard
-                    logo={transaction.tokenLogo || ''}
-                    tokenSymbol={transaction.tokenSymbol}
-                    amount={transaction.amount}
-                    address={transaction.to}
-                    timestamp={transaction.timestamp}
-                    statusLabel={t('transferred')}
-                    isOutgoing={true}
-                    onClick={() => window.open(getExplorerUrl(transaction.signature), '_blank')}
-                  />
-
-                  {/* End message */}
-                  <p className="text-white/50 text-center text-sm py-4">
-                    {t('noTransactions')}
-                  </p>
-                </>
+              {/* End message */}
+              {successfulOrders.length > 0 && (
+                <p className="text-white/50 text-center text-sm py-4">
+                  {t('noTransactions')}
+                </p>
               )}
             </div>
           )}
