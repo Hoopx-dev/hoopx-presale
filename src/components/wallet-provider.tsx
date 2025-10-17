@@ -30,11 +30,18 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   const wallets = useMemo(() => {
     const mobile = isMobile();
 
+    // Standard wallet adapters for Wallet Standard detection (works in-app browsers)
+    const standardWallets = [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ];
+
     if (mobile) {
-      // Mobile (Android/iOS): Use Mobile Wallet Adapter for deep linking
-      // This handles ALL mobile wallets including Phantom, Solflare, Jupiter, etc.
-      // Wallet Standard will auto-detect wallets when opened in their in-app browsers
+      // Mobile (Android/iOS):
+      // - Standard adapters enable Wallet Standard detection (for in-app browsers)
+      // - MWA enables deep linking (for regular browsers like Chrome/Safari)
       return [
+        ...standardWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
             select: async (addresses) => addresses[0],
@@ -57,11 +64,8 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
       ];
     }
 
-    // Desktop: Use standard wallet adapters (Phantom, Solflare)
-    return [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ];
+    // Desktop: Use standard wallet adapters only
+    return standardWallets;
   }, []);
 
   return (
