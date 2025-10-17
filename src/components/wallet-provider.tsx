@@ -14,34 +14,27 @@ interface WalletContextProviderProps {
   children: ReactNode;
 }
 
-// Detect mobile devices
-const isMobile = () => {
+// Detect Android devices
+const isAndroid = () => {
   if (typeof window === 'undefined') return false;
-  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+  return /android/i.test(navigator.userAgent);
 };
 
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
+  // Use configured RPC endpoint or fallback to public endpoint
   const endpoint = useMemo(
     () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'),
     []
   );
 
   // Configure supported wallets based on platform
+  // Android: Use Mobile Wallet Adapter (MWA) for proper deep link handling
+  // iOS/Desktop: Use standard wallet adapters
+  // Note: iOS does not support MWA due to background execution limitations
+  // iOS Chrome users should use Safari or wallet in-app browsers for best experience
   const wallets = useMemo(() => {
-    const mobile = isMobile();
-
-    // Standard wallet adapters for Wallet Standard detection (works in-app browsers)
-    const standardWallets = [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ];
-
-    if (mobile) {
-      // Mobile (Android/iOS):
-      // - Standard adapters enable Wallet Standard detection (for in-app browsers)
-      // - MWA enables deep linking (for regular browsers like Chrome/Safari)
+    if (isAndroid()) {
       return [
-        ...standardWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
             select: async (addresses) => addresses[0],
@@ -64,13 +57,16 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
       ];
     }
 
-    // Desktop: Use standard wallet adapters only
-    return standardWallets;
+    // iOS and Desktop: Use standard wallet adapters
+    return [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ];
   }, []);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={!isMobile()}>
+      <WalletProvider wallets={wallets} autoConnect={!isAndroid()}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
