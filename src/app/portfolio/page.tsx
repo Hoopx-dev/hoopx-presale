@@ -263,7 +263,7 @@ export default function PortfolioPage() {
                   onClick={() => router.push('/purchase')}
                   className="w-full mt-6"
                 >
-                  {t('buyNow')} - {purchaseDetails.activityId}
+                  {t('buyNow')}
                 </Button>
               )}
             </div>
