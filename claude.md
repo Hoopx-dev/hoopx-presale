@@ -1511,3 +1511,4 @@ hoopx-presale/
 ├── next.config.ts
 └── claude.md                       # This file
 ```
+- use pnpm instead of npm
