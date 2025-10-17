@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { FC, ReactNode, useMemo } from 'react';
-import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
-import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
-import { SolanaMobileWalletAdapter } from '@solana-mobile/wallet-adapter-mobile';
-import { clusterApiUrl } from '@solana/web3.js';
+import { SolanaMobileWalletAdapter } from "@solana-mobile/wallet-adapter-mobile";
+import {
+  ConnectionProvider,
+  WalletProvider,
+} from "@solana/wallet-adapter-react";
+import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
+import { clusterApiUrl } from "@solana/web3.js";
+import { FC, ReactNode, useMemo } from "react";
 
 // Import wallet adapter CSS
-import '@solana/wallet-adapter-react-ui/styles.css';
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 interface WalletContextProviderProps {
   children: ReactNode;
@@ -16,14 +22,17 @@ interface WalletContextProviderProps {
 
 // Detect Android devices
 const isAndroid = () => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   return /android/i.test(navigator.userAgent);
 };
 
-export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
+export const WalletContextProvider: FC<WalletContextProviderProps> = ({
+  children,
+}) => {
   // Use configured RPC endpoint or fallback to public endpoint
   const endpoint = useMemo(
-    () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'),
+    () =>
+      process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl("mainnet-beta"),
     []
   );
 
@@ -40,28 +49,28 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
             select: async (addresses) => addresses[0],
           },
           appIdentity: {
-            name: 'HOOPX Token Presale',
-            uri: typeof window !== 'undefined' ? window.location.origin : 'https://hoopx.gg',
-            icon: '/images/coin.png',
+            name: "HOOPX Token Presale",
+            uri:
+              typeof window !== "undefined"
+                ? window.location.origin
+                : "https://hoopx.gg",
+            icon: "/images/coin.png",
           },
           authorizationResultCache: {
             get: async () => Promise.resolve(undefined),
             set: async () => Promise.resolve(),
             clear: async () => Promise.resolve(),
           },
-          chain: 'solana:mainnet',
+          chain: "solana:mainnet",
           onWalletNotFound: async () => {
-            window.open('https://phantom.app/', '_blank');
+            window.open("https://phantom.app/", "_blank");
           },
         }),
       ];
     }
 
     // iOS and Desktop: Use standard wallet adapters
-    return [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ];
+    return [new PhantomWalletAdapter(), new SolflareWalletAdapter()];
   }, []);
 
   return (
