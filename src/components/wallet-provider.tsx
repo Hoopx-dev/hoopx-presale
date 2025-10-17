@@ -5,6 +5,7 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter, SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { SolanaMobileWalletAdapter } from '@solana-mobile/wallet-adapter-mobile';
+import { useWrappedReownAdapter } from '@jup-ag/jup-mobile-adapter';
 import { clusterApiUrl } from '@solana/web3.js';
 
 // Import wallet adapter CSS
@@ -20,30 +21,47 @@ const isAndroid = () => {
   return /android/i.test(navigator.userAgent);
 };
 
-export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
-  // Use configured RPC endpoint or fallback to public endpoint
+// Inner component that uses the Jupiter adapter hook
+const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children }) => {
   const endpoint = useMemo(
     () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'),
     []
   );
 
+  // Initialize Jupiter Mobile adapter with WalletConnect
+  const { reownAdapter, jupiterAdapter } = useWrappedReownAdapter({
+    appKitOptions: {
+      metadata: {
+        name: 'HOOPX Token Presale',
+        description: 'HOOPX is a token presale platform built on the Solana blockchain',
+        url: typeof window !== 'undefined' ? window.location.origin : 'https://hoopx.gg',
+        icons: ['/images/coin.png'],
+      },
+      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || '',
+      features: {
+        analytics: false,
+        socials: [],
+        email: false,
+      },
+      enableWallets: false,
+    },
+  });
+
   // Configure supported wallets based on platform
-  // Android: Use both standard adapters AND Mobile Wallet Adapter (MWA)
-  // - Standard adapters show in the modal UI
-  // - MWA provides better connection reliability on Android via Intent system
-  // iOS/Desktop: Use standard wallet adapters only
-  // Note: iOS does not support MWA due to background execution limitations
   const wallets = useMemo(() => {
     const standardWallets = [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ];
 
+    // Add Jupiter adapters (reownAdapter for WalletConnect, jupiterAdapter for direct connection)
+    const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
+
     if (isAndroid()) {
-      // On Android, include MWA as an additional option
-      // The standard wallets will appear in the modal for user selection
+      // Android: Include standard wallets + Jupiter + MWA
       return [
         ...standardWallets,
+        ...jupiterWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
             select: async (addresses) => addresses[0],
@@ -66,9 +84,9 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
       ];
     }
 
-    // iOS and Desktop: Use standard wallet adapters
-    return standardWallets;
-  }, []);
+    // iOS and Desktop: Use standard wallet adapters + Jupiter
+    return [...standardWallets, ...jupiterWallets];
+  }, [reownAdapter, jupiterAdapter]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
@@ -78,3 +96,6 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
     </ConnectionProvider>
   );
 };
+
+// Export the Jupiter-enabled wallet provider as the main export
+export const WalletContextProvider = WalletProviderWithJupiter;
