@@ -259,13 +259,13 @@ export default function PortfolioPage() {
               {purchaseDetails && !hasPurchasedCurrentActivity && (
                 <div
                   onClick={() => router.push('/purchase')}
-                  className="w-full mt-6 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity"
+                  className="w-full mt-6 rounded-xl p-4 flex items-center justify-between cursor-pointer hover:opacity-70 transition-opacity border border-orange-500"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-white text-2xl">•</span>
+                    <span className="text-orange-500 text-2xl">•</span>
                     <span className="text-white font-medium">New presale available!</span>
                   </div>
-                  <span className="text-white font-bold text-lg">BUY NOW</span>
+                  <span className="text-orange-500 font-bold text-lg">BUY NOW</span>
                 </div>
               )}
             </div>
