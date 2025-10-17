@@ -14,18 +14,28 @@ import { useTransaction } from '@/lib/solana/hooks';
 import { getExplorerUrl } from '@/lib/solana/transactions';
 import type { OrderVO } from '@/lib/purchase/types';
 
-// Component for rendering individual transaction
-function TransactionItem({ order, index, t, getDateLabel }: {
+// Wrapper component that handles date grouping logic
+function TransactionItemWithGrouping({
+  order,
+  prevOrder,
+  index,
+  t,
+  getDateLabel,
+  isSameDate
+}: {
   order: OrderVO;
+  prevOrder: OrderVO | null;
   index: number;
   t: (key: string) => string;
   getDateLabel: (timestamp: number) => string;
+  isSameDate: (t1: number, t2: number) => boolean;
 }) {
   const { data: transaction, isLoading: txLoading } = useTransaction(order.trxId);
+  const { data: prevTransaction } = useTransaction(prevOrder?.trxId);
 
   if (txLoading) {
     return (
-      <div key={order.trxId || index} className="text-white/50 text-center py-4">
+      <div className="text-white/50 text-center py-4">
         {t('loadingTransactions')}
       </div>
     );
@@ -33,17 +43,24 @@ function TransactionItem({ order, index, t, getDateLabel }: {
 
   if (!transaction) {
     return (
-      <div key={order.trxId || index} className="text-white/50 text-center py-4">
+      <div className="text-white/50 text-center py-4">
         {t('noTransactions')}
       </div>
     );
   }
 
+  // Show date header if:
+  // 1. First transaction (index === 0), OR
+  // 2. Previous transaction exists and dates are different
+  const showDateHeader =
+    index === 0 ||
+    (prevTransaction && !isSameDate(transaction.timestamp, prevTransaction.timestamp));
+
   return (
     <div>
-      {/* Date Header */}
-      {index === 0 && (
-        <h3 className="text-white text-sm mb-3">
+      {/* Date Header - show if first transaction or date changed from previous */}
+      {showDateHeader && (
+        <h3 className="text-white text-sm mb-3 mt-4">
           {getDateLabel(transaction.timestamp)}
         </h3>
       )}
@@ -161,6 +178,15 @@ export default function PortfolioPage() {
         year: 'numeric',
       });
     }
+  };
+
+  // Helper to check if two timestamps are on the same date
+  const isSameDate = (timestamp1: number, timestamp2: number) => {
+    const date1 = new Date(timestamp1 * 1000);
+    const date2 = new Date(timestamp2 * 1000);
+    date1.setHours(0, 0, 0, 0);
+    date2.setHours(0, 0, 0, 0);
+    return date1.getTime() === date2.getTime();
   };
 
   // Show loading while wallet is connecting/reconnecting or not mounted
@@ -294,15 +320,22 @@ export default function PortfolioPage() {
           {activeTab === 'transactions' && (
             <div className="space-y-4">
               {/* Transaction Cards - one per successful order */}
-              {successfulOrders.map((order, index) => (
-                <TransactionItem
-                  key={order.trxId || index}
-                  order={order}
-                  index={index}
-                  t={t}
-                  getDateLabel={getDateLabel}
-                />
-              ))}
+              {successfulOrders.map((order, index) => {
+                // For grouping, we need to load the previous transaction to compare dates
+                const prevOrder = index > 0 ? successfulOrders[index - 1] : null;
+
+                return (
+                  <TransactionItemWithGrouping
+                    key={order.trxId || index}
+                    order={order}
+                    prevOrder={prevOrder}
+                    index={index}
+                    t={t}
+                    getDateLabel={getDateLabel}
+                    isSameDate={isSameDate}
+                  />
+                );
+              })}
 
               {/* End message */}
               {successfulOrders.length > 0 && (
