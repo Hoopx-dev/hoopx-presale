@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { useEffect, useRef, Suspense } from 'react';
+import { useEffect, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
@@ -20,7 +20,6 @@ function HomeContent() {
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
   const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
   const { setReferralAddress } = useReferralStore();
-  const shouldRedirect = useRef(false);
 
   // Track current page for terms modal logic
   useEffect(() => {
@@ -35,19 +34,15 @@ function HomeContent() {
     }
   }, [searchParams, setReferralAddress]);
 
-  // Redirect to purchase or portfolio page after wallet connects
+  // Redirect to portfolio if connected with successful purchase (Rule #3)
   useEffect(() => {
-    if (connected && shouldRedirect.current) {
-      // Check if wallet has any successful purchase
+    if (connected) {
       const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
         order => order.purchaseStatus === 1
       );
       if (hasSuccessfulPurchase) {
         router.push('/portfolio');
-      } else {
-        router.push('/purchase');
       }
-      shouldRedirect.current = false;
     }
   }, [connected, purchaseSession, router]);
 
@@ -64,8 +59,7 @@ function HomeContent() {
         router.push('/purchase');
       }
     } else {
-      // Not connected, trigger wallet modal and set redirect flag
-      shouldRedirect.current = true;
+      // Not connected, trigger wallet modal (redirect handled by useEffect)
       setVisible(true);
     }
   };

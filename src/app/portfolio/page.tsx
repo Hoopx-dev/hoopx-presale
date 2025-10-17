@@ -92,12 +92,12 @@ export default function PortfolioPage() {
     sessionStorage.setItem('hoopx-current-page', 'portfolio');
   }, []);
 
-  // Redirect if not connected or no purchase
+  // Redirect if not connected or no purchase (Rules #1, #2)
   useEffect(() => {
     if (!connected) {
       router.push('/');
     } else if (!isLoading && successfulOrders.length === 0) {
-      router.push('/purchase');
+      router.push('/'); // Rule #2: Empty session redirects to homepage
     }
   }, [connected, successfulOrders, isLoading, router]);
 

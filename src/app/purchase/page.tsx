@@ -88,24 +88,39 @@ export default function PurchasePage() {
   // Terms modal state
   const [showTermsModal, setShowTermsModal] = useState(false);
 
-  // Redirect if not connected
+  // Redirect if not connected (Rule #1)
   useEffect(() => {
     if (!connected) {
       router.push('/');
     }
   }, [connected, router]);
 
-  // Redirect if already purchased current activity
+  // Redirect based on purchase status and activity (Rules #4, #5, #6)
   useEffect(() => {
-    if (!sessionLoading && purchaseDetails?.activityId) {
-      const hasPurchasedCurrentActivity = purchaseSession?.orderVoList?.some(
-        order => order.purchaseStatus === 1 && order.activityId === purchaseDetails.activityId
+    if (!sessionLoading && !detailsLoading && connected) {
+      const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1
       );
-      if (hasPurchasedCurrentActivity) {
+
+      // Rule #4: Has successful order but no ongoing activity → redirect to portfolio
+      if (hasSuccessfulPurchase && !purchaseDetails) {
         router.push('/portfolio');
+        return;
       }
+
+      // Rule #5: Has successful order AND ongoing activity AND already purchased current activity → redirect to portfolio
+      if (hasSuccessfulPurchase && purchaseDetails?.activityId) {
+        const hasPurchasedCurrentActivity = purchaseSession?.orderVoList?.some(
+          order => order.purchaseStatus === 1 && order.activityId === purchaseDetails.activityId
+        );
+        if (hasPurchasedCurrentActivity) {
+          router.push('/portfolio');
+        }
+      }
+
+      // Rule #6: Has successful order AND ongoing activity AND NOT purchased current activity → allow (no redirect)
     }
-  }, [purchaseSession, sessionLoading, purchaseDetails?.activityId, router]);
+  }, [connected, purchaseSession, sessionLoading, detailsLoading, purchaseDetails, router]);
 
   // Get estimated fee
   useEffect(() => {
