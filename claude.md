@@ -610,12 +610,16 @@ NEXT_PUBLIC_API_BASE_URL=http://boot-api.hoopx.gg
   - [x] Debug component for testing API integration (purchase-details-debug.tsx)
 - [x] **Solana Wallet Integration**
   - [x] @solana/wallet-adapter packages installed
-  - [x] WalletContextProvider with Phantom & Solflare support
+  - [x] @solana-mobile/wallet-adapter-mobile package for Android support
+  - [x] Platform-specific wallet adapter strategy (Android/iOS/Desktop)
+  - [x] Mobile Wallet Adapter (MWA) for Android browsers
+  - [x] Standard wallet adapters (Phantom, Solflare) for iOS and Desktop
   - [x] Custom WalletButton component with dropdown
   - [x] Wallet connection/disconnect functionality
   - [x] Hydration-safe implementation with mounted state
   - [x] Wallet address display with truncation (e.g., CiC7...xZm1)
   - [x] useWalletStore for managing connected wallet state
+  - [x] Android device detection for MWA initialization
 - [x] **Homepage Redesign**
   - [x] Mobile-first design matching mockups
   - [x] HOOPX coin logo and brand logo display
@@ -1177,6 +1181,194 @@ catch (error: unknown) {
 
 ---
 
+## Mobile Wallet Adapter Implementation
+
+### Overview
+
+The project implements a platform-specific wallet adapter strategy to provide optimal wallet connection experience across different devices and browsers.
+
+### Problem Statement
+
+Standard Solana wallet adapters (`PhantomWalletAdapter`, `SolflareWalletAdapter`) use custom URL scheme deep links (`phantom://`, `solflare://`) which have limitations on mobile browsers:
+
+**Android Limitations:**
+- Chrome and other Android browsers have inconsistent deep link handling
+- Phantom wallet connections often fail or require multiple attempts
+- Deep links may not trigger the installed wallet app
+
+**iOS Limitations:**
+- Chrome on iOS doesn't properly handle custom URL schemes due to WebKit restrictions
+- Safari and Arc browsers work correctly (use native WebKit)
+- iOS system doesn't provide wallet selection dialog for deep links
+
+### Solution: Platform-Specific Adapters
+
+**Strategy:**
+- **Android**: Use `SolanaMobileWalletAdapter` from `@solana-mobile/wallet-adapter-mobile`
+- **iOS**: Use standard wallet adapters (work in Safari/WebKit browsers)
+- **Desktop**: Use standard wallet adapters (browser extensions)
+
+### Technical Implementation
+
+#### File Location
+`src/components/wallet-provider.tsx`
+
+#### Device Detection
+```typescript
+const isAndroid = () => {
+  if (typeof window === 'undefined') return false;
+  return /android/i.test(navigator.userAgent);
+};
+```
+
+#### Wallet Configuration
+
+**Android Configuration:**
+```typescript
+if (isAndroid()) {
+  return [
+    new SolanaMobileWalletAdapter({
+      addressSelector: {
+        select: async (addresses) => addresses[0],
+      },
+      appIdentity: {
+        name: 'HOOPX Token Presale',
+        uri: typeof window !== 'undefined' ? window.location.origin : 'https://hoopx.gg',
+        icon: '/images/coin.png',
+      },
+      authorizationResultCache: {
+        get: async () => Promise.resolve(undefined),
+        set: async () => Promise.resolve(),
+        clear: async () => Promise.resolve(),
+      },
+      chain: 'solana:mainnet',
+      onWalletNotFound: async () => {
+        window.open('https://phantom.app/', '_blank');
+      },
+    }),
+  ];
+}
+```
+
+**iOS/Desktop Configuration:**
+```typescript
+// iOS and Desktop: Use standard wallet adapters
+return [
+  new PhantomWalletAdapter(),
+  new SolflareWalletAdapter(),
+];
+```
+
+#### AutoConnect Strategy
+```typescript
+<WalletProvider wallets={wallets} autoConnect={!isAndroid()}>
+```
+- **Android**: AutoConnect disabled (MWA handles connection flow)
+- **iOS/Desktop**: AutoConnect enabled for better UX
+
+### Mobile Wallet Adapter (MWA) Details
+
+#### What is MWA?
+
+The Solana Mobile Wallet Adapter (MWA) is a protocol specifically designed for mobile browsers to communicate with wallet apps using native Android Intents instead of deep links.
+
+**Key Features:**
+- Uses Android Intent system for reliable app-to-app communication
+- Supports persistent connections via WebSockets (Android only)
+- Provides standardized wallet selection interface
+- Handles authorization and transaction signing flow
+
+**Why Android Only?**
+
+iOS does not support MWA due to strict background execution limitations:
+- iOS suspends backgrounded apps, breaking WebSocket connections
+- No persistent communication channel available
+- Apple's App Store policies restrict background networking
+
+#### MWA Configuration Parameters
+
+**`addressSelector`**
+- Selects which address to use when wallet provides multiple accounts
+- Current implementation: Always select first address
+
+**`appIdentity`**
+- Identifies the dApp to the wallet
+- Includes app name, URL origin, and icon
+- Displayed in wallet's authorization screen
+
+**`authorizationResultCache`**
+- Stores authorization tokens for session persistence
+- Current implementation: No caching (always request fresh authorization)
+- Can be enhanced with localStorage for better UX
+
+**`chain`**
+- Specifies Solana chain: `'solana:mainnet'` or `'solana:devnet'`
+- Must match wallet's configured network
+
+**`onWalletNotFound`**
+- Fallback behavior when no compatible wallet found
+- Opens Phantom download page
+
+### Browser Compatibility Matrix
+
+| Platform | Browser | Wallet Type | Status |
+|----------|---------|-------------|--------|
+| Android | Chrome | MWA | ✅ Working |
+| Android | Firefox | MWA | ✅ Working |
+| Android | Samsung | MWA | ✅ Working |
+| iOS | Safari | Standard | ✅ Working |
+| iOS | Arc | Standard | ✅ Working |
+| iOS | Chrome | Standard | ⚠️ Limited (deep link issues) |
+| Desktop | Chrome | Standard | ✅ Working (extensions) |
+| Desktop | Firefox | Standard | ✅ Working (extensions) |
+| Desktop | Edge | Standard | ✅ Working (extensions) |
+
+### Benefits of This Approach
+
+1. **Reliability**: MWA provides consistent wallet connections on Android browsers
+2. **User Experience**: Native Intent navigation is faster and more intuitive than deep links
+3. **Fallback Graceful**: iOS and Desktop still use proven standard adapters
+4. **Future-Proof**: Follows Solana Mobile Stack best practices
+
+### Development Notes
+
+**Testing Requirements:**
+- Must test on actual Android devices (emulators may behave differently)
+- iOS testing should use Safari or Arc (Chrome has known limitations)
+- Desktop testing straightforward with wallet extensions
+
+**Known Limitations:**
+- iOS Chrome users should be advised to use Safari or Arc
+- MWA requires wallet apps that support the protocol (Phantom, Solflare do)
+- Authorization tokens not persisted (could be improved)
+
+### Dependencies
+
+```json
+{
+  "@solana/wallet-adapter-react": "^0.15.35",
+  "@solana/wallet-adapter-react-ui": "^0.9.35",
+  "@solana/wallet-adapter-wallets": "^0.19.32",
+  "@solana-mobile/wallet-adapter-mobile": "^2.2.3"
+}
+```
+
+### Future Enhancements
+
+- [ ] Implement authorization result caching for faster reconnections
+- [ ] Add wallet type detection and display appropriate UI
+- [ ] Support additional MWA-compatible wallets
+- [ ] Implement fallback UI for iOS Chrome users
+- [ ] Add analytics to track connection success rates by platform
+
+### Resources
+
+- [Solana Mobile Docs](https://docs.solanamobile.com/)
+- [Mobile Wallet Adapter Specification](https://solana-mobile.github.io/mobile-wallet-adapter/spec/spec.html)
+- [Wallet Adapter Repository](https://github.com/anza-xyz/wallet-adapter)
+
+---
+
 ## Transaction History Implementation
 
 ### Overview
@@ -1400,13 +1592,17 @@ NEXT_PUBLIC_SOLANA_RPC_URL=https://mainnet.helius-rpc.com/?api-key=YOUR_API_KEY
 
 ### Common Issues
 
-**Issue: Phantom wallet doesn't work on first click (Chrome iOS only)**
-- **Cause**: Chrome on iOS has limitations with custom URL scheme deep links (`phantom://`, `solflare://`)
-- **Behavior**: First click on Phantom does nothing. After clicking Solflare (or refreshing), Phantom works
-- **Solution**: This is a known Chrome iOS limitation. Users should:
-  - Use Safari or Arc browser on iOS for best wallet experience (both work correctly)
-  - OR click Phantom twice / try another wallet first to "warm up" the adapters
-- **Note**: This only affects Chrome browser on iOS. Desktop Chrome and other mobile browsers work fine.
+**Issue: Mobile wallet connections on Android browsers**
+- **Cause**: Standard Solana wallet adapters use deep links (`phantom://`, `solflare://`) which have limited support on mobile browsers
+- **Solution**: Implemented platform-specific wallet adapter strategy:
+  - **Android**: Uses `SolanaMobileWalletAdapter` from `@solana-mobile/wallet-adapter-mobile` package
+  - **iOS**: Uses standard `PhantomWalletAdapter` and `SolflareWalletAdapter` (works in Safari/WebKit)
+  - **Desktop**: Uses standard wallet adapters with browser extensions
+- **Technical Details**:
+  - Mobile Wallet Adapter (MWA) provides proper Android browser support via Intent-based navigation
+  - iOS does not support MWA due to background execution limitations
+  - Chrome on iOS may have issues with deep links; Safari and Arc browsers work correctly
+- **Implementation**: See `src/components/wallet-provider.tsx` for platform detection and adapter initialization
 
 **Issue: Transaction fails with "403 Forbidden"**
 - **Cause**: Public Solana RPC rate limiting
