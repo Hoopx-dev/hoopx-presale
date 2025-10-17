@@ -204,7 +204,8 @@ export default function PortfolioPage() {
                     >
                       <PurchaseCard
                         logo="/images/token-badge.png"
-                        tokenName={order.activityName}
+                        activityName={order.activityName}
+                        tokenSymbol="HOOPX"
                         tokenPrice={
                           order.rate
                             ? (typeof order.rate === 'string'

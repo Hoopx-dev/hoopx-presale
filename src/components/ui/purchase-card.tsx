@@ -6,9 +6,13 @@ export interface PurchaseCardProps {
    */
   logo: string;
   /**
-   * Token name (e.g., "HOOPX")
+   * Activity name (e.g., "Hoopx Preseed")
    */
-  tokenName: string;
+  activityName: string;
+  /**
+   * Token symbol (e.g., "HOOPX")
+   */
+  tokenSymbol?: string;
   /**
    * Token price in USDT
    */
@@ -29,7 +33,8 @@ export interface PurchaseCardProps {
 
 export default function PurchaseCard({
   logo,
-  tokenName,
+  activityName,
+  tokenSymbol = 'HOOPX',
   tokenPrice,
   amount,
   tokenAmount,
@@ -65,7 +70,7 @@ export default function PurchaseCard({
         <div className="flex-shrink-0">
           <Image
             src={logo}
-            alt={tokenName}
+            alt={activityName}
             width={64}
             height={64}
             className="w-16 h-16"
@@ -74,7 +79,7 @@ export default function PurchaseCard({
 
         {/* Token Info */}
         <div className="flex-1">
-          <h3 className="text-white font-bold text-xl mb-1">{tokenName}</h3>
+          <h3 className="text-white font-bold text-xl mb-1">{activityName}</h3>
           <p className="text-white/70 text-sm">{tokenPrice} USDT</p>
         </div>
 
@@ -84,7 +89,7 @@ export default function PurchaseCard({
             {formatUSDT(amount)} USDT
           </p>
           <p className="text-white/70 text-sm">
-            {formatTokenAmount(tokenAmount)} {tokenName}
+            {formatTokenAmount(tokenAmount)} {tokenSymbol}
           </p>
         </div>
       </div>

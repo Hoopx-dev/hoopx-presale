@@ -20,7 +20,8 @@ export default function PurchaseCardExamples() {
         <h2 className="text-2xl font-semibold text-white">Basic Usage</h2>
         <PurchaseCard
           logo="/images/token-badge.png"
-          tokenName="HOOPX"
+          activityName="Hoopx Preseed"
+          tokenSymbol="HOOPX"
           tokenPrice="0.003"
           amount={2000}
           tokenAmount={666666.67}
@@ -33,21 +34,24 @@ export default function PurchaseCardExamples() {
         <div className="space-y-3">
           <PurchaseCard
             logo="/images/token-badge.png"
-            tokenName="HOOPX"
+            activityName="Hoopx Preseed"
+            tokenSymbol="HOOPX"
             tokenPrice="0.003"
             amount={1000}
             tokenAmount={333333.33}
           />
           <PurchaseCard
             logo="/images/token-badge.png"
-            tokenName="HOOPX"
+            activityName="Hoopx Preseed"
+            tokenSymbol="HOOPX"
             tokenPrice="0.003"
             amount={3000}
             tokenAmount={1000000}
           />
           <PurchaseCard
             logo="/images/token-badge.png"
-            tokenName="HOOPX"
+            activityName="Hoopx Preseed"
+            tokenSymbol="HOOPX"
             tokenPrice="0.003"
             amount={5000}
             tokenAmount={1666666.67}
@@ -60,7 +64,8 @@ export default function PurchaseCardExamples() {
         <h2 className="text-2xl font-semibold text-white">With Custom Styling</h2>
         <PurchaseCard
           logo="/images/token-badge.png"
-          tokenName="HOOPX"
+          activityName="Hoopx Preseed"
+          tokenSymbol="HOOPX"
           tokenPrice="0.003"
           amount={2000}
           tokenAmount={666666.67}
@@ -74,14 +79,16 @@ export default function PurchaseCardExamples() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <PurchaseCard
             logo="/images/token-badge.png"
-            tokenName="HOOPX"
+            activityName="Hoopx Preseed"
+            tokenSymbol="HOOPX"
             tokenPrice="0.003"
             amount={1000}
             tokenAmount={333333.33}
           />
           <PurchaseCard
             logo="/images/token-badge.png"
-            tokenName="HOOPX"
+            activityName="Hoopx Preseed"
+            tokenSymbol="HOOPX"
             tokenPrice="0.003"
             amount={2000}
             tokenAmount={666666.67}
