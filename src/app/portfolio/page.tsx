@@ -76,6 +76,13 @@ export default function PortfolioPage() {
   // Collapsible state: track which order's details are expanded (by index)
   const [expandedOrderIndex, setExpandedOrderIndex] = useState<number>(0);
 
+  // Mounted state to prevent redirect during initial wallet reconnection
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Get all successful orders from orderVoList
   const successfulOrders = useMemo(() => {
     return purchaseSession?.orderVoList?.filter(order => order.purchaseStatus === 1) || [];
@@ -94,6 +101,9 @@ export default function PortfolioPage() {
 
   // Redirect if not connected or no purchase (Rules #1, #2)
   useEffect(() => {
+    // Don't redirect on initial mount - give wallet time to reconnect
+    if (!mounted) return;
+
     // Wait for wallet to finish connecting/reconnecting before redirecting
     if (connecting) return;
 
@@ -103,7 +113,7 @@ export default function PortfolioPage() {
     } else if (!isLoading && successfulOrders.length === 0) {
       router.push('/'); // Rule #2: Empty session redirects to homepage
     }
-  }, [connected, connecting, successfulOrders, isLoading, router]);
+  }, [mounted, connected, connecting, successfulOrders, isLoading, router]);
 
   // Calculate total HOOPX amount from all successful orders
   const totalHoopxAmount = useMemo(() => {
@@ -148,8 +158,8 @@ export default function PortfolioPage() {
     }
   };
 
-  // Show loading while wallet is connecting/reconnecting
-  if (connecting || (!connected && successfulOrders.length === 0)) {
+  // Show loading while wallet is connecting/reconnecting or not mounted
+  if (!mounted || connecting || (!connected && successfulOrders.length === 0)) {
     return null; // Will redirect or still connecting
   }
 
