@@ -186,6 +186,7 @@
   },
   "terms": {
     "title": "Terms and Conditions",
+    "modalTitle": "HOOPX Token User Subscription Terms",
     "accept": "I have read and accept the terms",
     "waitTime": "Please wait {seconds} seconds to continue",
     "mustAccept": "You must accept the terms to continue",

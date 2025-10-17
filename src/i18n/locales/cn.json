@@ -186,6 +186,7 @@
   },
   "terms": {
     "title": "条款与条件",
+    "modalTitle": "HOOPX Token 用户认购条款",
     "accept": "我已阅读并接受条款",
     "waitTime": "请等待 {seconds} 秒以继续",
     "mustAccept": "您必须接受条款才能继续",

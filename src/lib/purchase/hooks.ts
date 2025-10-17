@@ -68,11 +68,13 @@ export function useRegisterPurchase() {
 /**
  * Hook to fetch terms and conditions
  * Returns markdown text that can be rendered with a markdown renderer
+ * @param lang - Language code ('en' for English, 'zh' for Chinese)
+ * @param enabled - Whether to enable the query (default: true)
  */
-export function useTerms(enabled = true) {
+export function useTerms(lang: string = 'en', enabled = true) {
   return useQuery({
-    queryKey: QK.purchase.terms(),
-    queryFn: getTerms,
+    queryKey: QK.purchase.terms(lang),
+    queryFn: () => getTerms(lang),
     enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes - terms don't change often
     gcTime: 10 * 60 * 1000, // 10 minutes in cache

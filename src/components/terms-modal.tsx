@@ -1,7 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
 import { useTerms } from '@/lib/purchase/hooks';
+import { useLocaleSettings } from '@/components/locale-provider';
 
 interface TermsModalProps {
   isOpen: boolean;
@@ -9,7 +12,12 @@ interface TermsModalProps {
 }
 
 export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
-  const { data: termsMarkdown, isLoading } = useTerms(isOpen);
+  const t = useTranslations('terms');
+  const tCommon = useTranslations('common');
+  const { locale } = useLocaleSettings();
+  // Map 'cn' to 'zh' for API call, 'en' stays as 'en'
+  const apiLang = locale === 'cn' ? 'zh' : 'en';
+  const { data: termsMarkdown, isLoading } = useTerms(apiLang, isOpen);
   const [countdown, setCountdown] = useState(10);
   const [canClose, setCanClose] = useState(false);
 
@@ -54,7 +62,7 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
         {/* Header */}
         <div className="px-6 py-5 border-b border-gray-700">
           <h2 className="text-white text-xl font-bold text-center">
-            HOOPX Token 用户认购条款
+            {t('modalTitle')}
           </h2>
         </div>
 
@@ -65,8 +73,78 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
             </div>
           ) : (
-            <div className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
-              {termsText}
+            <div className="prose prose-invert prose-sm max-w-none text-white/80">
+              <ReactMarkdown
+                components={{
+                  h1: ({ children }) => (
+                    <h1 className="text-2xl font-bold text-white mb-4 mt-6 first:mt-0">
+                      {children}
+                    </h1>
+                  ),
+                  h2: ({ children }) => (
+                    <h2 className="text-xl font-bold text-white mb-3 mt-5">
+                      {children}
+                    </h2>
+                  ),
+                  h3: ({ children }) => (
+                    <h3 className="text-lg font-semibold text-white mb-2 mt-4">
+                      {children}
+                    </h3>
+                  ),
+                  p: ({ children }) => (
+                    <p className="text-white/80 mb-4 leading-relaxed">
+                      {children}
+                    </p>
+                  ),
+                  ul: ({ children }) => (
+                    <ul className="list-disc list-inside mb-4 space-y-2 text-white/80">
+                      {children}
+                    </ul>
+                  ),
+                  ol: ({ children }) => (
+                    <ol className="list-decimal list-inside mb-4 space-y-2 text-white/80">
+                      {children}
+                    </ol>
+                  ),
+                  li: ({ children }) => (
+                    <li className="text-white/80 leading-relaxed">
+                      {children}
+                    </li>
+                  ),
+                  strong: ({ children }) => (
+                    <strong className="text-white font-bold">
+                      {children}
+                    </strong>
+                  ),
+                  em: ({ children }) => (
+                    <em className="text-white/90 italic">
+                      {children}
+                    </em>
+                  ),
+                  a: ({ href, children }) => (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                    >
+                      {children}
+                    </a>
+                  ),
+                  blockquote: ({ children }) => (
+                    <blockquote className="border-l-4 border-cyan-400 pl-4 italic text-white/70 my-4">
+                      {children}
+                    </blockquote>
+                  ),
+                  code: ({ children }) => (
+                    <code className="bg-gray-800 text-cyan-300 px-1.5 py-0.5 rounded text-sm">
+                      {children}
+                    </code>
+                  ),
+                }}
+              >
+                {termsText || ''}
+              </ReactMarkdown>
             </div>
           )}
         </div>
@@ -84,7 +162,7 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
               }
             `}
           >
-            {canClose ? '继续' : `继续 (${countdown})`}
+            {canClose ? tCommon('continue') : `${tCommon('continue')} (${countdown})`}
           </button>
         </div>
       </div>

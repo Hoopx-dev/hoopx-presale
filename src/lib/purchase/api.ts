@@ -81,11 +81,13 @@ export const registerPurchase = async (
 };
 
 /**
- * GET /api/purchase/terms
+ * GET /api/purchase/terms?lang={language}
  * Retrieves the terms and conditions in markdown format
+ * @param lang - Language code ('en' for English, 'zh' for Chinese)
  */
-export const getTerms = async (): Promise<string> => {
+export const getTerms = async (lang: string = 'en'): Promise<string> => {
   const { data } = await http.get("/api/purchase/terms", {
+    params: { lang },
     headers: {
       Accept: "text/markdown",
     },
