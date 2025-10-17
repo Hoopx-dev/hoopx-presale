@@ -49,18 +49,13 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
 
   // Configure supported wallets based on platform
   const wallets = useMemo(() => {
-    const standardWallets = [
-      new PhantomWalletAdapter(),
-      new SolflareWalletAdapter(),
-    ];
-
     // Add Jupiter adapters (reownAdapter for WalletConnect, jupiterAdapter for direct connection)
     const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
 
     if (isAndroid()) {
-      // Android: Include standard wallets + Jupiter + MWA
+      // Android: Only use mobile-compatible wallets (Jupiter WalletConnect + MWA)
+      // Standard adapters (Phantom/Solflare) don't work on mobile browsers
       return [
-        ...standardWallets,
         ...jupiterWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
@@ -85,6 +80,10 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
     }
 
     // iOS and Desktop: Use standard wallet adapters + Jupiter
+    const standardWallets = [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+    ];
     return [...standardWallets, ...jupiterWallets];
   }, [reownAdapter, jupiterAdapter]);
 
