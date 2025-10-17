@@ -52,9 +52,17 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
     // Add Jupiter adapters (reownAdapter for WalletConnect, jupiterAdapter for direct connection)
     const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
 
+    // Debug: Log adapter status
+    console.log('Jupiter adapters:', {
+      reownAdapter: !!reownAdapter,
+      jupiterAdapter: !!jupiterAdapter,
+      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
+    });
+
     if (isAndroid()) {
-      // Android: Only use mobile-compatible wallets (Jupiter WalletConnect + MWA)
-      // Standard adapters (Phantom/Solflare) don't work on mobile browsers
+      // Android: Use Jupiter adapters + Mobile Wallet Adapter
+      // - Jupiter adapters work via WalletConnect and in-app detection
+      // - MWA provides deep links to installed wallet apps
       return [
         ...jupiterWallets,
         new SolanaMobileWalletAdapter({
