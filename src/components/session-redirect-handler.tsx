@@ -7,8 +7,8 @@ import { usePurchaseSession } from '@/lib/purchase/hooks';
 
 /**
  * Global session redirect handler
- * - If user has successful purchase (purchaseStatus === 1), redirect to portfolio
  * - If user is on portfolio but no successful purchase, redirect to purchase page
+ * - Individual pages handle activity-specific redirects
  */
 export default function SessionRedirectHandler() {
   const router = useRouter();
@@ -29,12 +29,8 @@ export default function SessionRedirectHandler() {
     const hasSuccessfulPurchase =
       purchaseSession?.orderVoList?.some(order => order.purchaseStatus === 1) || false;
 
-    // If on homepage or purchase page and has successful purchase, redirect to portfolio
-    if ((pathname === '/' || pathname === '/purchase') && hasSuccessfulPurchase) {
-      router.push('/portfolio');
-    }
-
-    // If on portfolio page but no successful purchase, redirect to purchase page
+    // Only redirect from portfolio if no purchases at all
+    // Purchase page handles activity-specific redirects
     if (pathname === '/portfolio' && !hasSuccessfulPurchase) {
       router.push('/purchase');
     }
