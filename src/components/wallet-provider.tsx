@@ -15,10 +15,10 @@ interface WalletContextProviderProps {
   children: ReactNode;
 }
 
-// Detect Android devices
-const isAndroid = () => {
+// Detect mobile devices
+const isMobile = () => {
   if (typeof window === 'undefined') return false;
-  return /android/i.test(navigator.userAgent);
+  return /android|iphone|ipad|ipod/i.test(navigator.userAgent);
 };
 
 // Inner component that uses the Jupiter adapter hook
@@ -49,22 +49,13 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
 
   // Configure supported wallets based on platform
   const wallets = useMemo(() => {
-    // Add Jupiter adapters (reownAdapter for WalletConnect, jupiterAdapter for direct connection)
-    const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
+    const mobile = isMobile();
 
-    // Debug: Log adapter status
-    console.log('Jupiter adapters:', {
-      reownAdapter: !!reownAdapter,
-      jupiterAdapter: !!jupiterAdapter,
-      projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
-    });
-
-    if (isAndroid()) {
-      // Android: Use Jupiter adapters + Mobile Wallet Adapter
-      // - Jupiter adapters work via WalletConnect and in-app detection
-      // - MWA provides deep links to installed wallet apps
+    if (mobile) {
+      // Mobile (Android/iOS): Use Mobile Wallet Adapter for deep linking
+      // This handles ALL mobile wallets including Phantom, Solflare, Jupiter, etc.
+      // Wallet Standard will auto-detect wallets when opened in their in-app browsers
       return [
-        ...jupiterWallets,
         new SolanaMobileWalletAdapter({
           addressSelector: {
             select: async (addresses) => addresses[0],
@@ -87,17 +78,19 @@ const WalletProviderWithJupiter: FC<WalletContextProviderProps> = ({ children })
       ];
     }
 
-    // iOS and Desktop: Use standard wallet adapters + Jupiter
+    // Desktop: Use standard wallet adapters + Jupiter WalletConnect
     const standardWallets = [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ];
+    const jupiterWallets = [reownAdapter, jupiterAdapter].filter(Boolean);
+
     return [...standardWallets, ...jupiterWallets];
   }, [reownAdapter, jupiterAdapter]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={!isAndroid()}>
+      <WalletProvider wallets={wallets} autoConnect={!isMobile()}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
