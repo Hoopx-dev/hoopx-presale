@@ -35,21 +35,22 @@ function HomeContent() {
   }, [searchParams, setReferralAddress]);
 
   // Redirect to portfolio if connected with successful purchase (Rule #3)
-  useEffect(() => {
-    // Only redirect if fully connected and session data is available
-    if (connected && publicKey && purchaseSession !== undefined) {
-      const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
-        order => order.purchaseStatus === 1
-      );
-      if (hasSuccessfulPurchase) {
-        // Small delay to ensure wallet connection is stable
-        const timer = setTimeout(() => {
-          router.push('/portfolio');
-        }, 100);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [connected, publicKey, purchaseSession, router]);
+  // Temporarily disabled to debug wallet connection issues
+  // useEffect(() => {
+  //   // Only redirect if fully connected and session data is available
+  //   if (connected && publicKey && purchaseSession !== undefined) {
+  //     const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+  //       order => order.purchaseStatus === 1
+  //     );
+  //     if (hasSuccessfulPurchase) {
+  //       // Small delay to ensure wallet connection is stable
+  //       const timer = setTimeout(() => {
+  //         router.push('/portfolio');
+  //       }, 100);
+  //       return () => clearTimeout(timer);
+  //     }
+  //   }
+  // }, [connected, publicKey, purchaseSession, router]);
 
   // Handle buy button click
   const handleBuyClick = () => {
