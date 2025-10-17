@@ -64,6 +64,9 @@ function HomeContent() {
     }
   };
 
+  // Check if no active activity (purchaseDetails is null/undefined)
+  const hasActiveActivity = !isLoading && purchaseDetails !== null && purchaseDetails !== undefined;
+
   // Calculate min and max tiers
   const minTier = purchaseDetails?.tiers?.[0] || 1000;
   const maxTier = purchaseDetails?.tiers?.[purchaseDetails.tiers.length - 1] || 5000;
@@ -106,45 +109,53 @@ function HomeContent() {
               />
             </div>
 
-            {/* Title */}
-            <h1 className="text-white text-2xl font-medium mb-12">
-              {t('title')}
-            </h1>
-          </div>
-
-          {/* Exchange Rate Display */}
-          <div className="w-full mb-12 text-center">
-            <p className="text-white/70 text-sm mb-3">{t('presalePrice')}</p>
-            {isLoading ? (
-              <p className="text-cyan-400 text-7xl font-bold mb-2">...</p>
+            {/* Coming Soon or Title */}
+            {!hasActiveActivity && !isLoading ? (
+              <h1 className="text-white text-4xl font-medium mb-12">
+                {t('comingSoon')}
+              </h1>
             ) : (
-              <p className="text-cyan-400 text-7xl font-bold mb-2">
-                {displayRate}
-              </p>
+              <h1 className="text-white text-2xl font-medium mb-12">
+                {t('title')}
+              </h1>
             )}
-            <p className="text-white text-lg">{t('exchangeRate')}</p>
           </div>
 
-          {/* Buy Button */}
-          <Button
-            variant="primary"
-            size="large"
-            onClick={handleBuyClick}
-            className="w-full mb-4"
-          >
-            {t('buyNow')}
-          </Button>
+          {/* Show activity details only if there's an active activity */}
+          {hasActiveActivity && (
+            <>
+              {/* Exchange Rate Display */}
+              <div className="w-full mb-12 text-center">
+                <p className="text-white/70 text-sm mb-3">{t('presalePrice')}</p>
+                <p className="text-cyan-400 text-7xl font-bold mb-2">
+                  {displayRate}
+                </p>
+                <p className="text-white text-lg">{t('exchangeRate')}</p>
+              </div>
 
-          {/* Purchase Range */}
-          <p className="text-white/70 text-sm text-center">
-            {isLoading ? (
-              '...'
-            ) : (
-              <>
+              {/* Buy Button */}
+              <Button
+                variant="primary"
+                size="large"
+                onClick={handleBuyClick}
+                className="w-full mb-4"
+              >
+                {t('buyNow')}
+              </Button>
+
+              {/* Purchase Range */}
+              <p className="text-white/70 text-sm text-center">
                 {minTier}-{maxTier}USDT {t('purchaseRange')}
-              </>
-            )}
-          </p>
+              </p>
+            </>
+          )}
+
+          {/* Loading state */}
+          {isLoading && (
+            <div className="w-full text-center">
+              <p className="text-white/50 text-lg">...</p>
+            </div>
+          )}
         </main>
       </div>
     </div>
