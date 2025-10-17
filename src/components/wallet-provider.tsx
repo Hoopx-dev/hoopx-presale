@@ -14,8 +14,11 @@ interface WalletContextProviderProps {
 }
 
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children }) => {
-  // Use Solana mainnet-beta or devnet
-  const endpoint = useMemo(() => clusterApiUrl('mainnet-beta'), []);
+  // Use configured RPC endpoint or fallback to public endpoint
+  const endpoint = useMemo(
+    () => process.env.NEXT_PUBLIC_SOLANA_RPC_URL || clusterApiUrl('mainnet-beta'),
+    []
+  );
 
   // Configure supported wallets
   // Note: Chrome on iOS has known issues with wallet deep links (phantom://, solflare://)
