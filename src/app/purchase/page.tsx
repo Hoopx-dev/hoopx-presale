@@ -97,7 +97,10 @@ export default function PurchasePage() {
 
   // Redirect if already purchased
   useEffect(() => {
-    if (!sessionLoading && purchaseSession?.purchaseStatus === 1) {
+    const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+      order => order.purchaseStatus === 1
+    );
+    if (!sessionLoading && hasSuccessfulPurchase) {
       router.push('/portfolio');
     }
   }, [purchaseSession, sessionLoading, router]);
@@ -148,7 +151,9 @@ export default function PurchasePage() {
   };
 
   // Check if wallet already purchased
-  const alreadyPurchased = purchaseSession?.purchaseStatus === 1;
+  const alreadyPurchased = purchaseSession?.orderVoList?.some(
+    order => order.purchaseStatus === 1
+  ) || false;
 
   // Handle terms acceptance
   const handleAcceptTerms = () => {
@@ -218,7 +223,10 @@ export default function PurchasePage() {
       const { data: latestSession } = await refetchSession();
 
       // Check if wallet already purchased (double-purchase prevention)
-      if (latestSession?.purchaseStatus === 1) {
+      const hasExistingPurchase = latestSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1
+      );
+      if (hasExistingPurchase) {
         showToastNotification(tError('alreadyPurchasedError'), 'error');
         setTimeout(() => {
           router.push('/portfolio');
@@ -283,8 +291,12 @@ export default function PurchasePage() {
       // Show success status
       setTransactionStatus('success');
 
-      // Redirect to portfolio if purchase was successful
-      if (registrationResult.purchaseStatus === 1) {
+      // Redirect to portfolio after successful purchase
+      // Registration result should contain the updated session with orderVoList
+      const hasSuccessfulOrder = registrationResult.orderVoList?.some(
+        order => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulOrder) {
         // Small delay to show success modal briefly
         setTimeout(() => {
           router.push('/portfolio');
@@ -378,9 +390,13 @@ export default function PurchasePage() {
               },
               {
                 label: t('currentAssets'),
-                value: purchaseSession?.purchasedAmount
-                  ? `${formatNumber(purchaseSession.purchasedAmount)} HOOPX`
-                  : '0 HOOPX',
+                value: (() => {
+                  // Calculate total HOOPX from all successful orders
+                  const totalHoopx = purchaseSession?.orderVoList
+                    ?.filter(order => order.purchaseStatus === 1)
+                    .reduce((sum, order) => sum + (order.amount / order.rate), 0) || 0;
+                  return totalHoopx > 0 ? `${formatTokenAmount(totalHoopx)} HOOPX` : '0 HOOPX';
+                })(),
               },
             ]}
             className="mb-6"

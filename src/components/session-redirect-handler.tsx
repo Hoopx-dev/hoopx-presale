@@ -25,7 +25,9 @@ export default function SessionRedirectHandler() {
     // If not connected, don't redirect (let individual pages handle this)
     if (!connected) return;
 
-    const hasSuccessfulPurchase = purchaseSession?.purchaseStatus === 1;
+    // Check if user has at least one successful purchase in orderVoList
+    const hasSuccessfulPurchase =
+      purchaseSession?.orderVoList?.some(order => order.purchaseStatus === 1) || false;
 
     // If on homepage or purchase page and has successful purchase, redirect to portfolio
     if ((pathname === '/' || pathname === '/purchase') && hasSuccessfulPurchase) {

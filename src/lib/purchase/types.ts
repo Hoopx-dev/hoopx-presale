@@ -14,16 +14,37 @@ export interface PurchaseDetailsVO {
   tierList?: number[] | string[]; // Alternative field name
 }
 
+// Single order/purchase record
+export interface OrderVO {
+  activityId: string;
+  trxId: string;
+  rate: number;
+  purchaseStatus: number; // 1=success, 2=failed
+  activityName: string;
+  amount: number; // Purchase amount in USDT
+  subscriptionTime: string; // Purchase time in GMT+8
+  cliff: string;
+  vesting: string;
+  vestingFrequency: string;
+}
+
+// Session response with array of orders
 export interface FetchSessionVO {
+  publicKey: string;
+  orderVoList: OrderVO[];
+}
+
+// Legacy support - keep this for backward compatibility during transition
+export interface LegacySessionVO {
   publicKey: string;
   purchasedAmount: number;
   trxId: string;
-  purchaseStatus: number; // 1=success, 2=failed
+  purchaseStatus: number;
   rate: number;
   cliff: string;
   vesting: string;
   vestingFrequency: string;
-  subscriptionTime: string; // User's purchase/subscription time
+  subscriptionTime: string;
 }
 
 export interface RegisterPurchaseDTO {

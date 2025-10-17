@@ -21,9 +21,14 @@ export default function PortfolioPage() {
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<'purchase' | 'transactions'>('purchase');
 
+  // Get the first successful order from orderVoList
+  const successfulOrder = useMemo(() => {
+    return purchaseSession?.orderVoList?.find(order => order.purchaseStatus === 1);
+  }, [purchaseSession]);
+
   // Fetch the specific transaction from the session using just the trxId
   const { data: transaction, isLoading: transactionLoading } = useTransaction(
-    purchaseSession?.trxId
+    successfulOrder?.trxId
   );
 
   // Track current page for terms modal logic
@@ -34,7 +39,7 @@ export default function PortfolioPage() {
   // Debug logging
   useEffect(() => {
     console.log('[Portfolio] Transaction query params:');
-    console.log('  - trxId:', purchaseSession?.trxId);
+    console.log('  - trxId:', successfulOrder?.trxId);
     console.log('  - isLoading:', transactionLoading);
     console.log('  - transaction:', transaction);
     if (transaction) {
@@ -44,22 +49,22 @@ export default function PortfolioPage() {
       console.log('  - amount:', transaction.amount);
       console.log('  - to:', transaction.to);
     }
-  }, [purchaseSession?.trxId, transactionLoading, transaction]);
+  }, [successfulOrder?.trxId, transactionLoading, transaction]);
 
   // Redirect if not connected or no purchase
   useEffect(() => {
     if (!connected) {
       router.push('/');
-    } else if (!isLoading && (!purchaseSession || purchaseSession.purchaseStatus !== 1)) {
+    } else if (!isLoading && !successfulOrder) {
       router.push('/purchase');
     }
-  }, [connected, purchaseSession, isLoading, router]);
+  }, [connected, successfulOrder, isLoading, router]);
 
   // Calculate HOOPX amount
   const hoopxAmount = useMemo(() => {
-    if (!purchaseSession?.purchasedAmount || !purchaseSession?.rate) return 0;
-    return purchaseSession.purchasedAmount / purchaseSession.rate;
-  }, [purchaseSession]);
+    if (!successfulOrder?.amount || !successfulOrder?.rate) return 0;
+    return successfulOrder.amount / successfulOrder.rate;
+  }, [successfulOrder]);
 
   const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return '0';
@@ -97,7 +102,7 @@ export default function PortfolioPage() {
     }
   };
 
-  if (!connected || !purchaseSession) {
+  if (!connected || !successfulOrder) {
     return null; // Will redirect
   }
 
@@ -148,14 +153,14 @@ export default function PortfolioPage() {
                 logo="/images/token-badge.png"
                 tokenName="HOOPX"
                 tokenPrice={
-                  purchaseSession?.rate
-                    ? (typeof purchaseSession.rate === 'string'
-                        ? parseFloat(purchaseSession.rate)
-                        : purchaseSession.rate
+                  successfulOrder?.rate
+                    ? (typeof successfulOrder.rate === 'string'
+                        ? parseFloat(successfulOrder.rate)
+                        : successfulOrder.rate
                       ).toString()
                     : '0.003'
                 }
-                amount={purchaseSession?.purchasedAmount || 0}
+                amount={successfulOrder?.amount || 0}
                 tokenAmount={hoopxAmount}
                 className="mb-6"
               />
@@ -165,7 +170,7 @@ export default function PortfolioPage() {
                 items={[
                   {
                     label: t('purchaseTime'),
-                    value: purchaseSession?.subscriptionTime || '-',
+                    value: successfulOrder?.subscriptionTime || '-',
                   },
                   {
                     label: t('purchaseStatus'),
@@ -173,16 +178,16 @@ export default function PortfolioPage() {
                   },
                   {
                     label: t('vestingPeriod'),
-                    value: `${purchaseSession?.vesting || '12'} ${t('months')}`,
+                    value: `${successfulOrder?.vesting || '12'} ${t('months')}`,
                   },
                   {
                     label: t('cliffPeriod'),
-                    value: `${purchaseSession?.cliff || '3'} ${t('months')}`,
+                    value: `${successfulOrder?.cliff || '3'} ${t('months')}`,
                   },
                   {
                     label: t('releaseFrequency'),
                     value: (() => {
-                      const freq = parseInt(purchaseSession?.vestingFrequency || '1');
+                      const freq = parseInt(successfulOrder?.vestingFrequency || '1');
                       return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
                     })(),
                   },

@@ -38,8 +38,11 @@ function HomeContent() {
   // Redirect to purchase or portfolio page after wallet connects
   useEffect(() => {
     if (connected && shouldRedirect.current) {
-      // Check if wallet already purchased
-      if (purchaseSession?.purchaseStatus === 1) {
+      // Check if wallet has any successful purchase
+      const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulPurchase) {
         router.push('/portfolio');
       } else {
         router.push('/purchase');
@@ -52,7 +55,10 @@ function HomeContent() {
   const handleBuyClick = () => {
     if (connected) {
       // Already connected, check if purchased
-      if (purchaseSession?.purchaseStatus === 1) {
+      const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
+        order => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulPurchase) {
         router.push('/portfolio');
       } else {
         router.push('/purchase');
