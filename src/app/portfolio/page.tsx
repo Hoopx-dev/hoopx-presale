@@ -290,7 +290,10 @@ export default function PortfolioPage() {
                             label: t('releaseFrequency'),
                             value: (() => {
                               const freq = parseInt(order.vestingFrequency || '1');
-                              return freq === 1 ? t('perMonth') : `/${freq}${t('months')}`;
+                              if (freq === 1) return t('perMonth');
+                              // Use translation keys for different frequencies
+                              const key = `per${freq}Months` as const;
+                              return t(key, { defaultValue: `/${freq}${t('months')}` });
                             })(),
                           },
                         ]}
