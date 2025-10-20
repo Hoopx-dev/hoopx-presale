@@ -47,6 +47,11 @@ export default function PurchasePage() {
   const [referralError, setReferralError] = useState("");
   const [isReferralAutofilled, setIsReferralAutofilled] = useState(false);
 
+  // Reset selected tier on mount (clean slate every time user enters purchase page)
+  useEffect(() => {
+    setSelectedTier(null);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Auto-fill referral input from store (only if it's not the connected wallet)
   useEffect(() => {
     if (referralAddress && publicKey) {
