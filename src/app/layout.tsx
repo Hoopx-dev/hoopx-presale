@@ -1,8 +1,10 @@
 import LocaleProvider from "@/components/locale-provider";
 import Providers from "@/components/providers";
+import ReferralCapture from "@/components/referral-capture";
 import StagingWatermark from "@/components/staging-watermark";
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,7 +44,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Providers>
-          <LocaleProvider>{children}</LocaleProvider>
+          <LocaleProvider>
+            <Suspense fallback={null}>
+              <ReferralCapture />
+            </Suspense>
+            {children}
+          </LocaleProvider>
         </Providers>
         <StagingWatermark />
         <div className='py-8'></div>

@@ -45,6 +45,7 @@ export default function PurchasePage() {
   const [showReferralInput, setShowReferralInput] = useState(false);
   const [referralInput, setReferralInput] = useState("");
   const [referralError, setReferralError] = useState("");
+  const [isReferralAutofilled, setIsReferralAutofilled] = useState(false);
 
   // Auto-fill referral input from store (only if it's not the connected wallet)
   useEffect(() => {
@@ -53,6 +54,7 @@ export default function PurchasePage() {
       if (referralAddress !== publicKey.toBase58()) {
         setReferralInput(referralAddress);
         setShowReferralInput(true);
+        setIsReferralAutofilled(true); // Mark as autofilled
       }
     }
   }, [referralAddress, publicKey]);
@@ -545,18 +547,30 @@ export default function PurchasePage() {
             {/* Collapsible Input */}
             {showReferralInput && (
               <div className='mt-2'>
-                <input
-                  type='text'
-                  value={referralInput}
-                  onChange={handleReferralChange}
-                  onBlur={handleReferralBlur}
-                  placeholder={t("referralPlaceholder")}
-                  className={`w-full bg-white/10 border rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none transition-colors ${
-                    referralError
-                      ? "border-danger focus:border-danger"
-                      : "border-white/20 focus:border-secondary"
-                  }`}
-                />
+                <div className='relative'>
+                  <input
+                    type='text'
+                    value={referralInput}
+                    onChange={handleReferralChange}
+                    onBlur={handleReferralBlur}
+                    placeholder={t("referralPlaceholder")}
+                    readOnly={isReferralAutofilled}
+                    className={`w-full border rounded-xl px-4 py-3 text-white placeholder-white/50 transition-colors ${
+                      isReferralAutofilled
+                        ? "bg-white/5 border-white/10 cursor-not-allowed"
+                        : referralError
+                        ? "bg-white/10 border-danger focus:border-danger focus:outline-none"
+                        : "bg-white/10 border-white/20 focus:border-secondary focus:outline-none"
+                    }`}
+                  />
+                  {isReferralAutofilled && (
+                    <div className='absolute right-3 top-1/2 -translate-y-1/2'>
+                      <svg className='w-5 h-5 text-white/40' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' />
+                      </svg>
+                    </div>
+                  )}
+                </div>
                 {referralError && (
                   <p className='text-danger text-xs mt-2'>{referralError}</p>
                 )}

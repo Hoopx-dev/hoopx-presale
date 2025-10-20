@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface ReferralState {
   referralAddress: string | null;
@@ -6,8 +7,18 @@ interface ReferralState {
   clearReferralAddress: () => void;
 }
 
-export const useReferralStore = create<ReferralState>((set) => ({
-  referralAddress: null,
-  setReferralAddress: (address) => set({ referralAddress: address }),
-  clearReferralAddress: () => set({ referralAddress: null }),
-}));
+export const useReferralStore = create<ReferralState>()(
+  persist(
+    (set) => ({
+      referralAddress: null,
+      setReferralAddress: (address) => {
+        set({ referralAddress: address });
+      },
+      clearReferralAddress: () => set({ referralAddress: null }),
+    }),
+    {
+      name: 'hoopx-referral-storage', // localStorage key
+      skipHydration: false,
+    }
+  )
+);
