@@ -514,13 +514,12 @@ export default function PurchasePage() {
                 value: detailsLoading
                   ? "..."
                   : (() => {
-                      const freq = parseInt(
-                        purchaseDetails?.vestingFrequency || "1"
-                      );
+                      const freq =
+                        Number(purchaseDetails?.vestingFrequency) ?? 1;
                       if (freq === 1) return t("perMonth");
-                      // Use translation keys for different frequencies
-                      const key = `per${freq}Months` as const;
-                      return t(key, { defaultValue: `/${freq}${t("months")}` });
+                      if (freq === 2) return t("perYear");
+                      // Fallback for unexpected values
+                      return t("perMonth");
                     })(),
               },
             ]}

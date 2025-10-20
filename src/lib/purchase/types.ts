@@ -3,7 +3,7 @@ export interface PurchaseDetailsVO {
   activityId: string;
   cliff: string;
   vesting: string;
-  vestingFrequency: string;
+  vestingFrequency: number; // 1=monthly, 2=yearly
   hoopxWalletAddress: string;
   startTime: string;
   endTime: string;
@@ -25,7 +25,7 @@ export interface OrderVO {
   subscriptionTime: string; // Purchase time in GMT+8
   cliff: string;
   vesting: string;
-  vestingFrequency: string;
+  vestingFrequency: number; // 1=monthly, 2=yearly
 }
 
 // Session response with array of orders
@@ -43,7 +43,7 @@ export interface LegacySessionVO {
   rate: number;
   cliff: string;
   vesting: string;
-  vestingFrequency: string;
+  vestingFrequency: number; // 1=monthly, 2=yearly
   subscriptionTime: string;
 }
 
