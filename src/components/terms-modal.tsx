@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { useTerms } from '@/lib/purchase/hooks';
 import { useLocaleSettings } from '@/components/locale-provider';
 
@@ -75,6 +76,7 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
           ) : (
             <div className="prose prose-invert prose-sm max-w-none text-white/80">
               <ReactMarkdown
+                rehypePlugins={[rehypeRaw]}
                 components={{
                   h1: ({ children }) => (
                     <h1 className="text-2xl font-bold text-white mb-4 mt-6 first:mt-0">
@@ -140,6 +142,10 @@ export default function TermsModal({ isOpen, onAccept }: TermsModalProps) {
                     <code className="bg-gray-800 text-cyan-300 px-1.5 py-0.5 rounded text-sm">
                       {children}
                     </code>
+                  ),
+                  // Handle span elements with inline styles from HTML
+                  span: (props) => (
+                    <span {...props} />
                   ),
                 }}
               >
