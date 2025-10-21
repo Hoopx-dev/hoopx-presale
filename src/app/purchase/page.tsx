@@ -30,8 +30,11 @@ export default function PurchasePage() {
   const tError = useTranslations("errors");
   const router = useRouter();
   const { connected, publicKey, signTransaction } = useWallet();
-  const { data: purchaseDetails, isLoading: detailsLoading } =
-    usePurchaseDetails();
+  const {
+    data: purchaseDetails,
+    isLoading: detailsLoading,
+    refetch: refetchDetails,
+  } = usePurchaseDetails();
   const {
     data: purchaseSession,
     isLoading: sessionLoading,
@@ -288,6 +291,25 @@ export default function PurchasePage() {
       // Set loading state on confirm button
       setConfirmLoading(true);
 
+      // Refetch purchase details to verify presale round is still active
+      const { data: latestDetails } = await refetchDetails();
+      if (!latestDetails) {
+        // Presale round has ended
+        setConfirmLoading(false);
+        setShowConfirmModal(false);
+        showToastNotification(tError("presaleRoundEnded"), "error");
+        return;
+      }
+
+      // Use latest details for transaction
+      const hoopxWalletAddress = latestDetails.hoopxWalletAddress;
+      const currentActivityId = latestDetails.activityId;
+
+      if (!hoopxWalletAddress || !currentActivityId) {
+        showToastNotification(tError("missingData"), "error");
+        return;
+      }
+
       // Refetch session to ensure wallet hasn't purchased current activity yet
       const { data: latestSession } = await refetchSession();
 
@@ -295,7 +317,7 @@ export default function PurchasePage() {
       const hasExistingPurchase = latestSession?.orderVoList?.some(
         (order) =>
           order.purchaseStatus === 1 &&
-          order.activityId === purchaseDetails.activityId
+          order.activityId === currentActivityId
       );
       if (hasExistingPurchase) {
         showToastNotification(tError("alreadyPurchasedError"), "error");
@@ -313,7 +335,7 @@ export default function PurchasePage() {
       const result = await transferUSDT(
         connection,
         publicKey,
-        purchaseDetails.hoopxWalletAddress,
+        hoopxWalletAddress,
         selectedTier,
         signTransaction
       );
@@ -337,7 +359,7 @@ export default function PurchasePage() {
         publicKey: publicKey.toBase58(),
         amount: selectedTier,
         trxId: result.signature,
-        activityId: purchaseDetails.activityId,
+        activityId: currentActivityId,
       };
 
       // Validate all required fields exist

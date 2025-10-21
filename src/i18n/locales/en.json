@@ -244,7 +244,8 @@
     "noUsdtAccount": "No USDT account found. Please get USDT first.",
     "insufficientBalanceGeneric": "Insufficient balance to complete transaction",
     "transactionFailed": "Transaction failed. Please try again",
-    "insufficientUsdtBalance": "Insufficient USDT balance. You have {current} USDT but need {required} USDT."
+    "insufficientUsdtBalance": "Insufficient USDT balance. You have {current} USDT but need {required} USDT.",
+    "presaleRoundEnded": "The presale round has ended. Please wait for the next round."
   },
   "footer": {
     "description": "HOOPX - Basketball Onchain. Your trusted platform for basketball token presale.",

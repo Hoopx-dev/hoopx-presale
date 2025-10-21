@@ -244,7 +244,8 @@
     "noUsdtAccount": "未找到 USDT 账户。请先获取 USDT。",
     "insufficientBalanceGeneric": "余额不足，无法完成交易",
     "transactionFailed": "交易失败，请重试",
-    "insufficientUsdtBalance": "USDT 余额不足。您有 {current} USDT，但需要 {required} USDT。"
+    "insufficientUsdtBalance": "USDT 余额不足。您有 {current} USDT，但需要 {required} USDT。",
+    "presaleRoundEnded": "本轮认购已结束，请等待下一轮。"
   },
   "footer": {
     "description": "HOOPX - 篮球链上。您值得信赖的篮球代币预售平台。",
