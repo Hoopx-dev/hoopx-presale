@@ -2,8 +2,11 @@
 
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useEffect } from 'react';
+import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
+import { isInMobileBrowser, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
+import { useReferralStore } from '@/lib/store/useReferralStore';
 
 interface MobileWalletModalProps {
   isOpen: boolean;
@@ -25,6 +28,8 @@ const getWalletDisplayName = (walletName: string): string => {
 export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModalProps) {
   const { wallets, select, connecting } = useWallet();
   const t = useTranslations('wallet');
+  const { referralAddress } = useReferralStore();
+  const [redirecting, setRedirecting] = React.useState(false);
 
   // Close on ESC key
   useEffect(() => {
@@ -46,10 +51,31 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
 
   const handleWalletSelect = async (walletName: string) => {
     try {
+      // Special handling for Jupiter on mobile browser
+      if (walletName === 'Jupiter Mobile' && isInMobileBrowser()) {
+        // Show redirecting state
+        setRedirecting(true);
+
+        // Small delay to show the message
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Open Jupiter app with deep link, passing referral params
+        openInJupiterApp(referralAddress || undefined);
+
+        // Reset state after redirect attempt
+        setTimeout(() => {
+          setRedirecting(false);
+        }, 2000);
+
+        return;
+      }
+
+      // Standard WalletConnect flow for other wallets or if already in wallet browser
       select(walletName as import('@solana/wallet-adapter-base').WalletName);
       // Modal will close when connection succeeds
     } catch (error) {
       console.error('Failed to select wallet:', error);
+      setRedirecting(false);
     }
   };
 
@@ -79,7 +105,14 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
 
         {/* Wallet List */}
         <div className="space-y-3">
-          {wallets.map((wallet) => (
+          {redirecting && (
+            <div className="text-center py-4">
+              <div className="text-white text-lg font-medium mb-2">{t('openingJupiter')}</div>
+              <div className="text-white/50 text-sm">{t('redirectingToJupiter')}</div>
+            </div>
+          )}
+
+          {!redirecting && wallets.map((wallet) => (
             <button
               key={wallet.adapter.name}
               onClick={() => handleWalletSelect(wallet.adapter.name)}

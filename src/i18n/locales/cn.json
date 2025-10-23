@@ -87,6 +87,8 @@
     "balance": "余额",
     "insufficientBalance": "余额不足",
     "switchNetwork": "切换到 Solana",
+    "openingJupiter": "正在打开 Jupiter...",
+    "redirectingToJupiter": "您将被重定向到 Jupiter 应用",
     "installWallet": "请安装 Solana 钱包",
     "connectionFailed": "连接钱包失败",
     "transactionFailed": "交易失败",

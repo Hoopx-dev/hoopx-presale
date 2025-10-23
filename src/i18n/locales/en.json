@@ -87,6 +87,8 @@
     "balance": "Balance",
     "insufficientBalance": "Insufficient balance",
     "switchNetwork": "Switch to Solana",
+    "openingJupiter": "Opening Jupiter...",
+    "redirectingToJupiter": "You'll be redirected to Jupiter app",
     "installWallet": "Please install a Solana wallet",
     "connectionFailed": "Failed to connect wallet",
     "transactionFailed": "Transaction failed",
