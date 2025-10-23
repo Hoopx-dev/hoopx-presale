@@ -58,14 +58,17 @@ export function buildUrlWithReferral(baseUrl: string, referralAddress?: string):
 /**
  * Create Jupiter deep link for mobile
  * Opens Jupiter app with the website URL in Jupiter's in-app browser
+ *
+ * Note: Jupiter may use different schemes. Try multiple formats:
+ * 1. jupiter://browse?url=... (query parameter)
+ * 2. jupiter://browser?url=... (browser with 'r')
+ * 3. Direct app open: jupiter://
  */
 export function createJupiterDeepLink(websiteUrl: string): string {
-  // Encode the website URL
   const encodedUrl = encodeURIComponent(websiteUrl);
 
-  // Jupiter uses a universal link format
-  // This will open Jupiter app and load the URL in their browser
-  return `https://jup.ag/browser?url=${encodedUrl}`;
+  // Try format with query parameter (most common pattern)
+  return `jupiter://browser?url=${encodedUrl}`;
 }
 
 /**
@@ -80,6 +83,26 @@ export function openInJupiterApp(referralAddress?: string): void {
   // Create deep link
   const deepLink = createJupiterDeepLink(currentUrl);
 
-  // Redirect to Jupiter app
+  // Try to open Jupiter app
   window.location.href = deepLink;
+
+  // Fallback: If Jupiter app doesn't open in 2 seconds, open app store
+  const timeout = setTimeout(() => {
+    // Detect Android or iOS
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isAndroid) {
+      // Open Jupiter on Google Play Store
+      window.location.href = 'https://play.google.com/store/apps/details?id=ag.jup.jupiter';
+    } else if (isIOS) {
+      // Open Jupiter on Apple App Store
+      window.location.href = 'https://apps.apple.com/app/jupiter-wallet/id6449832272';
+    }
+  }, 2000);
+
+  // Clear timeout if page unloads (app opened successfully)
+  window.addEventListener('blur', () => {
+    clearTimeout(timeout);
+  }, { once: true });
 }

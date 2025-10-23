@@ -5,8 +5,9 @@ import { useEffect } from 'react';
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { isInMobileBrowser, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
+import { isInMobileBrowser } from '@/lib/utils/mobile-deeplink';
 import { useReferralStore } from '@/lib/store/useReferralStore';
+import JupiterInstructionsModal from './jupiter-instructions-modal';
 
 interface MobileWalletModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
   const { wallets, select, connecting } = useWallet();
   const t = useTranslations('wallet');
   const { referralAddress } = useReferralStore();
-  const [redirecting, setRedirecting] = React.useState(false);
+  const [showJupiterInstructions, setShowJupiterInstructions] = React.useState(false);
 
   // Close on ESC key
   useEffect(() => {
@@ -53,20 +54,9 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
     try {
       // Special handling for Jupiter on mobile browser
       if (walletName === 'Jupiter Mobile' && isInMobileBrowser()) {
-        // Show redirecting state
-        setRedirecting(true);
-
-        // Small delay to show the message
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        // Open Jupiter app with deep link, passing referral params
-        openInJupiterApp(referralAddress || undefined);
-
-        // Reset state after redirect attempt
-        setTimeout(() => {
-          setRedirecting(false);
-        }, 2000);
-
+        // Close wallet list modal and show instructions modal
+        onClose();
+        setShowJupiterInstructions(true);
         return;
       }
 
@@ -75,7 +65,6 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
       // Modal will close when connection succeeds
     } catch (error) {
       console.error('Failed to select wallet:', error);
-      setRedirecting(false);
     }
   };
 
@@ -105,14 +94,7 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
 
         {/* Wallet List */}
         <div className="space-y-3">
-          {redirecting && (
-            <div className="text-center py-4">
-              <div className="text-white text-lg font-medium mb-2">{t('openingJupiter')}</div>
-              <div className="text-white/50 text-sm">{t('redirectingToJupiter')}</div>
-            </div>
-          )}
-
-          {!redirecting && wallets.map((wallet) => (
+          {wallets.map((wallet) => (
             <button
               key={wallet.adapter.name}
               onClick={() => handleWalletSelect(wallet.adapter.name)}
@@ -147,6 +129,13 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
           {t('connectDescription')}
         </p>
       </div>
+
+      {/* Jupiter Instructions Modal */}
+      <JupiterInstructionsModal
+        isOpen={showJupiterInstructions}
+        onClose={() => setShowJupiterInstructions(false)}
+        referralAddress={referralAddress || undefined}
+      />
     </div>
   );
 }
