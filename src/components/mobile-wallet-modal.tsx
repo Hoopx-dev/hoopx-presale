@@ -5,9 +5,8 @@ import { useEffect } from 'react';
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { isInMobileBrowser } from '@/lib/utils/mobile-deeplink';
+import { isInMobileBrowser, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
 import { useReferralStore } from '@/lib/store/useReferralStore';
-import JupiterInstructionsModal from './jupiter-instructions-modal';
 
 interface MobileWalletModalProps {
   isOpen: boolean;
@@ -30,7 +29,6 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
   const { wallets, select, connecting } = useWallet();
   const t = useTranslations('wallet');
   const { referralAddress } = useReferralStore();
-  const [showJupiterInstructions, setShowJupiterInstructions] = React.useState(false);
 
   // Close on ESC key
   useEffect(() => {
@@ -52,11 +50,10 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
 
   const handleWalletSelect = async (walletName: string) => {
     try {
-      // Special handling for Jupiter on mobile browser
+      // Special handling for Jupiter on mobile browser - direct deep link
       if (walletName === 'Jupiter Mobile' && isInMobileBrowser()) {
-        // Close wallet list modal and show instructions modal
-        onClose();
-        setShowJupiterInstructions(true);
+        onClose(); // Close modal
+        openInJupiterApp(referralAddress || undefined); // Open Jupiter app with deep link
         return;
       }
 
@@ -129,13 +126,6 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
           {t('connectDescription')}
         </p>
       </div>
-
-      {/* Jupiter Instructions Modal */}
-      <JupiterInstructionsModal
-        isOpen={showJupiterInstructions}
-        onClose={() => setShowJupiterInstructions(false)}
-        referralAddress={referralAddress || undefined}
-      />
     </div>
   );
 }
