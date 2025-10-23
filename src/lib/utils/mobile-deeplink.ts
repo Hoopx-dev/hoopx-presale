@@ -20,6 +20,7 @@ export function isInWalletBrowser(): boolean {
     'trust',
     'coinbase',
     'metamask',
+    'jupiter',
   ];
 
   return walletBrowsers.some(wallet => userAgent.includes(wallet));
@@ -40,6 +41,15 @@ export function isMobileDevice(): boolean {
  */
 export function isInMobileBrowser(): boolean {
   return isMobileDevice() && !isInWalletBrowser();
+}
+
+/**
+ * Detect if user is specifically in Jupiter wallet's in-app browser
+ */
+export function isInJupiterBrowser(): boolean {
+  if (typeof window === 'undefined') return false;
+  const userAgent = navigator.userAgent.toLowerCase();
+  return userAgent.includes('jupiter');
 }
 
 /**

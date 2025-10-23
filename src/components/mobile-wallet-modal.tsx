@@ -5,7 +5,7 @@ import { useEffect } from 'react';
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
-import { isInMobileBrowser, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
+import { isInMobileBrowser, isInJupiterBrowser, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
 import { useReferralStore } from '@/lib/store/useReferralStore';
 
 interface MobileWalletModalProps {
@@ -29,6 +29,16 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
   const { wallets, select, connecting } = useWallet();
   const t = useTranslations('wallet');
   const { referralAddress } = useReferralStore();
+
+  // Filter wallets: hide Jupiter Mobile if already in Jupiter app
+  const inJupiterBrowser = isInJupiterBrowser();
+  const filteredWallets = wallets.filter(wallet => {
+    // Hide "Jupiter Mobile" option if already in Jupiter's browser
+    if (wallet.adapter.name === 'Jupiter Mobile' && inJupiterBrowser) {
+      return false;
+    }
+    return true;
+  });
 
   // Close on ESC key
   useEffect(() => {
@@ -91,7 +101,7 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
 
         {/* Wallet List */}
         <div className="space-y-3">
-          {wallets.map((wallet) => (
+          {filteredWallets.map((wallet) => (
             <button
               key={wallet.adapter.name}
               onClick={() => handleWalletSelect(wallet.adapter.name)}
