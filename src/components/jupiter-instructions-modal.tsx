@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { buildUrlWithReferral } from '@/lib/utils/mobile-deeplink';
+import { buildUrlWithReferral, openInJupiterApp } from '@/lib/utils/mobile-deeplink';
 
 interface JupiterInstructionsModalProps {
   isOpen: boolean;
@@ -53,8 +53,8 @@ export default function JupiterInstructionsModal({
   };
 
   const handleOpenJupiter = () => {
-    // Try to open Jupiter app
-    window.location.href = 'jupiter://';
+    // Use the sophisticated function with app store fallback
+    openInJupiterApp(referralAddress);
   };
 
   return (
