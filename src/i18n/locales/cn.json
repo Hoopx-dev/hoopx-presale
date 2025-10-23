@@ -245,7 +245,11 @@
     "insufficientBalanceGeneric": "余额不足，无法完成交易",
     "transactionFailed": "交易失败，请重试",
     "insufficientUsdtBalance": "USDT 余额不足。您有 {current} USDT，但需要 {required} USDT。",
-    "presaleRoundEnded": "本轮认购已结束，请等待下一轮。"
+    "presaleRoundEnded": "本轮认购已结束，请等待下一轮。",
+    "registrationFailed": "后端注册购买失败。",
+    "transactionSuccessHint": "您的交易已在区块链上成功。请联系客服并提供您的交易ID。",
+    "insufficientSol": "SOL 余额不足，无法支付网络费用。请向您的钱包添加 SOL。",
+    "insufficientSolBalance": "SOL 余额不足，无法支付网络费用。您有 {current} SOL，但需要 {required} SOL。"
   },
   "footer": {
     "description": "HOOPX - 篮球链上。您值得信赖的篮球代币预售平台。",

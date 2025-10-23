@@ -92,6 +92,25 @@ export async function transferUSDT(
       recipientAccountExists = false;
     }
 
+    // Check if sender has enough SOL for transaction fees
+    const solBalance = await connection.getBalance(senderPublicKey);
+    const solBalanceInSol = solBalance / 1_000_000_000; // Convert lamports to SOL
+
+    // Calculate estimated fee (includes account creation if needed)
+    const estimatedFee = await getEstimatedFee(
+      connection,
+      recipientAddress,
+      senderPublicKey
+    );
+
+    if (solBalanceInSol < estimatedFee) {
+      return {
+        signature: '',
+        success: false,
+        error: `Insufficient SOL for network fees. You have ${solBalanceInSol.toFixed(6)} SOL but need ${estimatedFee.toFixed(6)} SOL.`,
+      };
+    }
+
     // Get recent blockhash
     const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
 
@@ -142,15 +161,47 @@ export async function transferUSDT(
 
     // Send transaction
     const signature = await connection.sendRawTransaction(
-      signedTransaction.serialize()
+      signedTransaction.serialize(),
+      {
+        skipPreflight: false,
+        maxRetries: 3,
+      }
     );
 
-    // Confirm transaction
-    await connection.confirmTransaction({
-      signature,
-      blockhash,
-      lastValidBlockHeight,
+    // Confirm transaction with timeout
+    // Use a promise race to prevent hanging indefinitely
+    const confirmationPromise = connection.confirmTransaction(
+      {
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      },
+      'confirmed' // Use 'confirmed' commitment for faster confirmation
+    );
+
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Transaction confirmation timeout'));
+      }, 30000); // 30 second timeout
     });
+
+    try {
+      await Promise.race([confirmationPromise, timeoutPromise]);
+    } catch (confirmError: unknown) {
+      // If confirmation times out, still return success with signature
+      // The backend can verify the transaction status
+      if (confirmError instanceof Error && confirmError.message.includes('timeout')) {
+        // Transaction was sent but confirmation timed out
+        // Still return success since we have the signature
+        return {
+          signature,
+          success: true,
+          error: undefined,
+        };
+      }
+      // Other confirmation errors - rethrow
+      throw confirmError;
+    }
 
     return {
       signature,

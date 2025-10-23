@@ -327,10 +327,20 @@ export default function PurchasePage() {
         return;
       }
 
-      // Create connection
+      // Create fresh connection (important if tab was backgrounded)
       const connection = createSolanaConnection();
 
-      // Execute transfer - this will open Phantom wallet
+      // Check network connectivity before proceeding
+      try {
+        await connection.getLatestBlockhash();
+      } catch {
+        setConfirmLoading(false);
+        setShowConfirmModal(false);
+        showToastNotification(tError("networkError"), "error");
+        return;
+      }
+
+      // Execute transfer - this will open wallet
       // Only show sending modal AFTER user confirms in wallet
       const result = await transferUSDT(
         connection,
@@ -383,10 +393,47 @@ export default function PurchasePage() {
         ? { ...registrationPayload, referralWalletAddress: trimmedReferral }
         : registrationPayload;
 
-      // Register purchase in backend
-      const registrationResult = await registerMutation.mutateAsync(
-        registrationData
-      );
+      // Register purchase in backend with retry logic
+      let registrationResult;
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      while (retryCount < maxRetries) {
+        try {
+          registrationResult = await registerMutation.mutateAsync(
+            registrationData
+          );
+          break; // Success, exit retry loop
+        } catch {
+          retryCount++;
+
+          if (retryCount >= maxRetries) {
+            // After max retries, show error but don't fail completely
+            // Transaction already succeeded on blockchain
+            showToastNotification(
+              `${tError("registrationFailed")} ${tError("transactionSuccessHint")}`,
+              "warning"
+            );
+
+            // Wait a bit then redirect to portfolio
+            // User can contact support with transaction ID
+            setTimeout(() => {
+              router.push("/portfolio");
+            }, 3000);
+
+            return;
+          }
+
+          // Wait before retry (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+
+      // Check if registration was successful
+      if (!registrationResult) {
+        showToastNotification(tError("registrationFailed"), "error");
+        return;
+      }
 
       // Show success status
       setTransactionStatus("success");
@@ -426,6 +473,21 @@ export default function PurchasePage() {
       } else if (errorMessage.includes("do not have a USDT account")) {
         // User doesn't have USDT token account
         showToastNotification(tError("noUsdtAccount"), "error");
+      } else if (errorMessage.includes("Insufficient SOL for network fees")) {
+        // User doesn't have enough SOL for fees - extract values
+        // Message format: "Insufficient SOL for network fees. You have X SOL but need Y SOL."
+        const match = errorMessage.match(
+          /have ([\d.]+) SOL but need ([\d.]+) SOL/
+        );
+        if (match) {
+          const [, current, required] = match;
+          showToastNotification(
+            tError("insufficientSolBalance", { current, required }),
+            "error"
+          );
+        } else {
+          showToastNotification(tError("insufficientSol"), "error");
+        }
       } else if (errorMessage.includes("Insufficient USDT balance")) {
         // User doesn't have enough USDT - extract values and use translation
         // Message format: "Insufficient USDT balance. You have X USDT but need Y USDT."

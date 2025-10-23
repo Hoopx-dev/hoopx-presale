@@ -245,7 +245,11 @@
     "insufficientBalanceGeneric": "Insufficient balance to complete transaction",
     "transactionFailed": "Transaction failed. Please try again",
     "insufficientUsdtBalance": "Insufficient USDT balance. You have {current} USDT but need {required} USDT.",
-    "presaleRoundEnded": "The presale round has ended. Please wait for the next round."
+    "presaleRoundEnded": "The presale round has ended. Please wait for the next round.",
+    "registrationFailed": "Failed to register purchase with backend.",
+    "transactionSuccessHint": "Your transaction was successful on blockchain. Please contact support with your transaction ID.",
+    "insufficientSol": "Insufficient SOL for network fees. Please add SOL to your wallet.",
+    "insufficientSolBalance": "Insufficient SOL for network fees. You have {current} SOL but need {required} SOL."
   },
   "footer": {
     "description": "HOOPX - Basketball Onchain. Your trusted platform for basketball token presale.",
