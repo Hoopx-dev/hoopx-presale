@@ -10,6 +10,18 @@ interface MobileWalletModalProps {
   onClose: () => void;
 }
 
+/**
+ * Get display name for wallet
+ */
+const getWalletDisplayName = (walletName: string): string => {
+  // Rename WalletConnect/Reown to "Other wallets"
+  if (walletName === 'WalletConnect/Reown') {
+    return 'Other wallets';
+  }
+  // Keep Jupiter Mobile as is
+  return walletName;
+};
+
 export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModalProps) {
   const { wallets, select, connecting } = useWallet();
   const t = useTranslations('wallet');
@@ -85,7 +97,7 @@ export default function MobileWalletModal({ isOpen, onClose }: MobileWalletModal
                 />
               )}
               <div className="flex-1 text-left">
-                <div className="text-white font-medium">{wallet.adapter.name}</div>
+                <div className="text-white font-medium">{getWalletDisplayName(wallet.adapter.name)}</div>
                 {connecting && (
                   <div className="text-white/50 text-sm mt-1">Connecting...</div>
                 )}

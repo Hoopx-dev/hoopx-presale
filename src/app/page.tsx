@@ -9,6 +9,17 @@ import { useEffect, useState, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
+import MobileWalletModal from '@/components/mobile-wallet-modal';
+
+/**
+ * Detect if running on mobile device
+ */
+const isMobile = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
 
 function HomeContent() {
   const t = useTranslations('home');
@@ -17,6 +28,7 @@ function HomeContent() {
   const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
   const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
+  const [showMobileModal, setShowMobileModal] = useState(false);
 
   // Mounted state to prevent redirect during initial wallet reconnection
   const [mounted, setMounted] = useState(false);
@@ -24,6 +36,13 @@ function HomeContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Close mobile modal when connected
+  useEffect(() => {
+    if (connected && showMobileModal) {
+      setShowMobileModal(false);
+    }
+  }, [connected, showMobileModal]);
 
   // Track current page for terms modal logic
   useEffect(() => {
@@ -62,8 +81,12 @@ function HomeContent() {
         router.push('/purchase');
       }
     } else {
-      // Not connected, trigger wallet modal (redirect handled by useEffect)
-      setVisible(true);
+      // Not connected, trigger appropriate wallet modal
+      if (isMobile()) {
+        setShowMobileModal(true);
+      } else {
+        setVisible(true);
+      }
     }
   };
 
@@ -161,6 +184,12 @@ function HomeContent() {
           )}
         </main>
       </div>
+
+      {/* Mobile Wallet Modal */}
+      <MobileWalletModal
+        isOpen={showMobileModal}
+        onClose={() => setShowMobileModal(false)}
+      />
     </div>
   );
 }
