@@ -11,7 +11,7 @@ import {
   SolflareWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
-import { FC, ReactNode, useMemo, useState, useEffect } from "react";
+import { FC, ReactNode, useMemo } from "react";
 
 // Import wallet adapter CSS
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -33,12 +33,6 @@ const isMobile = (): boolean => {
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({
   children,
 }) => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // Use configured RPC endpoint or fallback to public endpoint
   const endpoint = useMemo(
     () =>
@@ -46,7 +40,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     []
   );
 
-  // Initialize Jupiter mobile adapter for mobile devices
+  // Initialize Jupiter mobile adapter
   const { reownAdapter, jupiterAdapter } = useWrappedReownAdapter({
     appKitOptions: {
       metadata: {
@@ -71,15 +65,13 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
 
   // Configure wallets based on platform
   const wallets = useMemo(() => {
-    if (!mounted) return [];
-
     const mobile = isMobile();
 
     if (mobile) {
       // Mobile: Use Jupiter adapter with WalletConnect for mobile wallets
       return [reownAdapter, jupiterAdapter];
     } else {
-      // Desktop: Use standard browser extension wallets + WalletConnect as fallback
+      // Desktop: Add browser extension wallets alongside WalletConnect
       return [
         new PhantomWalletAdapter(),
         new SolflareWalletAdapter(),
@@ -87,22 +79,11 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
         jupiterAdapter, // Jupiter WalletConnect
       ];
     }
-  }, [mounted, reownAdapter, jupiterAdapter]);
-
-  // Prevent hydration issues
-  if (!mounted) {
-    return (
-      <ConnectionProvider endpoint={endpoint}>
-        <WalletProvider wallets={[]} autoConnect={false}>
-          <WalletModalProvider>{children}</WalletModalProvider>
-        </WalletProvider>
-      </ConnectionProvider>
-    );
-  }
+  }, [reownAdapter, jupiterAdapter]);
 
   return (
     <ConnectionProvider endpoint={endpoint}>
-      <WalletProvider wallets={wallets} autoConnect={!isMobile()}>
+      <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
