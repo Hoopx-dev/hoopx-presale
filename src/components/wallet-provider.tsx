@@ -6,6 +6,10 @@ import {
   WalletProvider,
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
+import {
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from "@solana/wallet-adapter-wallets";
 import { clusterApiUrl } from "@solana/web3.js";
 import { FC, ReactNode, useMemo } from "react";
 
@@ -15,6 +19,16 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 interface WalletContextProviderProps {
   children: ReactNode;
 }
+
+/**
+ * Detect if running on mobile device
+ */
+const isMobile = (): boolean => {
+  if (typeof window === "undefined") return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
+};
 
 export const WalletContextProvider: FC<WalletContextProviderProps> = ({
   children,
@@ -26,6 +40,7 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     []
   );
 
+  // Initialize Jupiter mobile adapter
   const { reownAdapter, jupiterAdapter } = useWrappedReownAdapter({
     appKitOptions: {
       metadata: {
@@ -48,10 +63,22 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({
     },
   });
 
-  // Configure supported wallets - use reownAdapter and jupiterAdapter for all platforms
-  // Works for Android, iOS, and Desktop browsers
+  // Configure wallets based on platform
   const wallets = useMemo(() => {
-    return [reownAdapter, jupiterAdapter];
+    const mobile = isMobile();
+
+    if (mobile) {
+      // Mobile: Jupiter first, then other wallets via WalletConnect
+      return [jupiterAdapter, reownAdapter];
+    } else {
+      // Desktop: Add browser extension wallets alongside WalletConnect
+      return [
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+        jupiterAdapter, // Jupiter WalletConnect
+        reownAdapter, // WalletConnect for wallets without extensions
+      ];
+    }
   }, [reownAdapter, jupiterAdapter]);
 
   return (

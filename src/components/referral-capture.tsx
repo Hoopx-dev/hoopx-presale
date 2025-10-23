@@ -13,7 +13,8 @@ export default function ReferralCapture() {
   const { setReferralAddress } = useReferralStore();
 
   useEffect(() => {
-    const referralParam = searchParams.get('referral');
+    // Check for both 'ref' and 'referral' parameters
+    const referralParam = searchParams.get('ref') || searchParams.get('referral');
     if (referralParam) {
       // Store referral address (persists to localStorage via Zustand persist middleware)
       setReferralAddress(referralParam);
