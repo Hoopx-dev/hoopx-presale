@@ -65,10 +65,11 @@ export function openInJupiterApp(referralAddress?: string): void {
   // Build current URL with referral params
   const currentUrl = buildUrlWithReferral(window.location.href, referralAddress);
 
-  // Try Jupiter deep link format: jupiter://dapp?url=...
-  const deepLink = `jupiter://dapp?url=${encodeURIComponent(currentUrl)}`;
+  // Jupiter deep link format: jupiter://browse/{url}
+  // URL is passed as a path parameter, not query parameter
+  const deepLink = `jupiter://browse/${encodeURIComponent(currentUrl)}`;
 
-  console.log('Trying Jupiter deep link:', deepLink);
+  console.log('Jupiter deep link:', deepLink);
   window.location.href = deepLink;
 
   // Fallback: If Jupiter app doesn't open in 2 seconds, open app store
