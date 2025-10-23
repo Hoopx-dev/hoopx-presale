@@ -53,8 +53,8 @@ export default function JupiterInstructionsModal({
   };
 
   const handleOpenJupiter = () => {
-    // Use the sophisticated function with app store fallback
-    openInJupiterApp(referralAddress);
+    // Open Jupiter app (without URL - user will manually navigate)
+    openInJupiterApp();
   };
 
   return (

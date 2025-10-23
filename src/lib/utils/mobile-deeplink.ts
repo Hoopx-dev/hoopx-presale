@@ -56,35 +56,16 @@ export function buildUrlWithReferral(baseUrl: string, referralAddress?: string):
 }
 
 /**
- * Create Jupiter deep link for mobile
- * Opens Jupiter app with the website URL in Jupiter's in-app browser
- *
- * Note: Jupiter may use different schemes. Try multiple formats:
- * 1. jupiter://browse?url=... (query parameter)
- * 2. jupiter://browser?url=... (browser with 'r')
- * 3. Direct app open: jupiter://
+ * Open Jupiter app on mobile
+ * Note: Jupiter doesn't support passing URLs via deep links,
+ * so this just opens the app. Users must manually navigate to the website.
  */
-export function createJupiterDeepLink(websiteUrl: string): string {
-  const encodedUrl = encodeURIComponent(websiteUrl);
-
-  // Try format with query parameter (most common pattern)
-  return `jupiter://browser?url=${encodedUrl}`;
-}
-
-/**
- * Open Jupiter app on mobile with current website
- */
-export function openInJupiterApp(referralAddress?: string): void {
+export function openInJupiterApp(): void {
   if (typeof window === 'undefined') return;
 
-  // Build current URL with referral params
-  const currentUrl = buildUrlWithReferral(window.location.href, referralAddress);
-
-  // Create deep link
-  const deepLink = createJupiterDeepLink(currentUrl);
-
-  // Try to open Jupiter app
-  window.location.href = deepLink;
+  // Just open Jupiter app without any URL parameters
+  // Jupiter's deep linking doesn't support opening specific URLs
+  window.location.href = 'jupiter://';
 
   // Fallback: If Jupiter app doesn't open in 2 seconds, open app store
   const timeout = setTimeout(() => {
