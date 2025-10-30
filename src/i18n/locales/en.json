@@ -281,5 +281,24 @@
     "terms": "Terms & Conditions",
     "privacy": "Privacy Policy",
     "copyright": "© 2025 HOOPX. All rights reserved."
+  },
+  "unfinishedOrder": {
+    "title": "Complete Your Purchase",
+    "description": "You have an unfinished order. Please enter your transaction ID to complete the purchase.",
+    "amount": "Purchase Amount",
+    "receive": "You Will Receive",
+    "createdAt": "Order Created",
+    "trxIdLabel": "Transaction ID",
+    "trxIdPlaceholder": "Enter your transaction ID",
+    "trxIdHint": "You can find the transaction ID in your wallet's transaction history",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "cancel": "Later",
+    "errorEmpty": "Please enter the transaction ID",
+    "errorInvalid": "Invalid transaction ID format",
+    "errorMessage": "Failed to complete order. Please try again.",
+    "errorMismatch": "Transaction hash does not match order data. Please check if the transaction hash is correct.",
+    "successTitle": "Purchase Completed!",
+    "successMessage": "Your purchase has been successfully completed"
   }
 }

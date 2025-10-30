@@ -5,12 +5,14 @@ import Header from "@/components/header";
 import TermsModal from "@/components/terms-modal";
 import Toast, { ToastType } from "@/components/toast";
 import TransactionStatusModal from "@/components/transaction-status-modal";
+import UnfinishedOrderModal from "@/components/unfinished-order-modal";
 import { Button } from "@/components/ui/button";
 import InfoListCard from "@/components/ui/info-list-card";
 import {
+  useConvertToFormal,
+  useCreatePreOrder,
   usePurchaseDetails,
   usePurchaseSession,
-  useRegisterPurchase,
 } from "@/lib/purchase/hooks";
 import {
   createSolanaConnection,
@@ -28,6 +30,7 @@ import { FiChevronDown, FiChevronUp } from "react-icons/fi";
 export default function PurchasePage() {
   const t = useTranslations("purchase");
   const tError = useTranslations("errors");
+  const tUnfinished = useTranslations("unfinishedOrder");
   const router = useRouter();
   const { connected, publicKey, signTransaction } = useWallet();
   const {
@@ -39,10 +42,14 @@ export default function PurchasePage() {
     data: purchaseSession,
     isLoading: sessionLoading,
     refetch: refetchSession,
-  } = usePurchaseSession(publicKey?.toBase58());
+  } = usePurchaseSession(
+    publicKey?.toBase58(),
+    purchaseDetails?.activityId
+  );
   const { selectedTier, setSelectedTier } = useUIStore();
   const { referralAddress } = useReferralStore();
-  const registerMutation = useRegisterPurchase();
+  const createPreOrderMutation = useCreatePreOrder();
+  const convertToFormalMutation = useConvertToFormal();
 
   // Referral input state
   const [showReferralInput, setShowReferralInput] = useState(false);
@@ -112,6 +119,10 @@ export default function PurchasePage() {
 
   // Terms modal state
   const [showTermsModal, setShowTermsModal] = useState(false);
+
+  // Unfinished order modal state
+  const [showUnfinishedOrderModal, setShowUnfinishedOrderModal] =
+    useState(false);
 
   // Redirect if not connected (Rule #1)
   useEffect(() => {
@@ -221,6 +232,14 @@ export default function PurchasePage() {
     setShowTermsModal(false);
   };
 
+  // Check for unfinished order and show modal
+  useEffect(() => {
+    if (connected && !sessionLoading && purchaseSession?.preOrderVO) {
+      // Has unfinished order - show modal
+      setShowUnfinishedOrderModal(true);
+    }
+  }, [connected, sessionLoading, purchaseSession]);
+
   // Show terms modal only when navigating from a different page (not on refresh or language change)
   useEffect(() => {
     const previousPage = sessionStorage.getItem("hoopx-current-page");
@@ -239,16 +258,17 @@ export default function PurchasePage() {
       "hoopx-terms-accepted-session"
     );
 
-    // Show modal if not accepted in this session
+    // Show modal if not accepted in this session (and no unfinished order)
     if (
       connected &&
       !sessionLoading &&
       !alreadyPurchased &&
-      !hasAcceptedInSession
+      !hasAcceptedInSession &&
+      !purchaseSession?.preOrderVO
     ) {
       setShowTermsModal(true);
     }
-  }, [connected, sessionLoading, alreadyPurchased]);
+  }, [connected, sessionLoading, alreadyPurchased, purchaseSession]);
 
   const displayRate = useMemo(() => {
     if (!purchaseDetails?.rate) return "0.003";
@@ -273,6 +293,64 @@ export default function PurchasePage() {
   const handleBuyClick = () => {
     if (!selectedTier || alreadyPurchased) return;
     setShowConfirmModal(true);
+  };
+
+  // Handle completing unfinished order
+  const handleCompleteUnfinishedOrder = async (trxId: string) => {
+    if (!publicKey || !purchaseSession?.preOrderVO) return;
+
+    try {
+      const preOrder = purchaseSession.preOrderVO;
+
+      // Validate preOrderId exists
+      if (!preOrder.preOrderId) {
+        showToastNotification(tUnfinished("errorMessage"), "error");
+        return;
+      }
+
+      // Convert to formal order
+      const result = await convertToFormalMutation.mutateAsync({
+        preOrderId: preOrder.preOrderId,
+        trxId: trxId,
+        publicKey: publicKey.toBase58(),
+      });
+
+      // Close modal
+      setShowUnfinishedOrderModal(false);
+
+      // Show success toast
+      showToastNotification(tUnfinished("successMessage"), "success");
+
+      // Check if registration was successful
+      const hasSuccessfulOrder = result.orderVoList?.some(
+        (order) => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulOrder) {
+        // Redirect to portfolio after successful completion
+        setTimeout(() => {
+          router.push("/portfolio");
+        }, 1500);
+      }
+    } catch (error: unknown) {
+      // Check if error is from API response
+      let errorMessage = tUnfinished("errorMessage");
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { data?: { msg?: string } } };
+        const msg = apiError.response?.data?.msg;
+
+        // Check for transaction hash mismatch error
+        if (msg && msg.includes("交易哈希与订单数据匹配不通过")) {
+          errorMessage = tUnfinished("errorMismatch");
+        } else if (msg) {
+          errorMessage = msg;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      showToastNotification(errorMessage, "error");
+    }
   };
 
   // Handle transaction confirmation
@@ -340,7 +418,42 @@ export default function PurchasePage() {
         return;
       }
 
-      // Execute transfer - this will open wallet
+      // Step 1: Create pre-order before wallet transaction
+      const trimmedReferral = referralInput.trim();
+
+      // Validate referral address is not the same as user's wallet
+      if (trimmedReferral && trimmedReferral === publicKey.toBase58()) {
+        setConfirmLoading(false);
+        setShowConfirmModal(false);
+        showToastNotification(t("cannotReferSelf"), "error");
+        return;
+      }
+
+      const preOrderPayload = {
+        publicKey: publicKey.toBase58(),
+        amount: selectedTier,
+        activityId: currentActivityId,
+        ...(trimmedReferral && { referralWalletAddress: trimmedReferral }),
+      };
+
+      let preOrderResult;
+      try {
+        preOrderResult = await createPreOrderMutation.mutateAsync(
+          preOrderPayload
+        );
+      } catch (error: unknown) {
+        setConfirmLoading(false);
+        setShowConfirmModal(false);
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to create order";
+        showToastNotification(errorMessage, "error");
+        return;
+      }
+
+      // Store pre-order ID for later use
+      const currentPreOrderId = preOrderResult.preOrderId;
+
+      // Step 2: Execute transfer - this will open wallet
       // Only show sending modal AFTER user confirms in wallet
       const result = await transferUSDT(
         connection,
@@ -364,45 +477,18 @@ export default function PurchasePage() {
       // Store transaction ID
       setTransactionId(result.signature);
 
-      // Validate required fields before registration
-      const registrationPayload = {
-        publicKey: publicKey.toBase58(),
-        amount: selectedTier,
-        trxId: result.signature,
-        activityId: currentActivityId,
-      };
-
-      // Validate all required fields exist
-      if (
-        !registrationPayload.publicKey ||
-        !registrationPayload.amount ||
-        !registrationPayload.trxId ||
-        !registrationPayload.activityId
-      ) {
-        throw new Error("Missing required registration data");
-      }
-
-      // Validate referral address is not the same as user's wallet
-      const trimmedReferral = referralInput.trim();
-      if (trimmedReferral && trimmedReferral === publicKey.toBase58()) {
-        throw new Error("Cannot use your own wallet address as referral");
-      }
-
-      // Add referral address if provided
-      const registrationData = trimmedReferral
-        ? { ...registrationPayload, referralWalletAddress: trimmedReferral }
-        : registrationPayload;
-
-      // Register purchase in backend with retry logic
-      let registrationResult;
+      // Step 3: Convert pre-order to formal order with retry logic
+      let conversionResult;
       let retryCount = 0;
       const maxRetries = 3;
 
       while (retryCount < maxRetries) {
         try {
-          registrationResult = await registerMutation.mutateAsync(
-            registrationData
-          );
+          conversionResult = await convertToFormalMutation.mutateAsync({
+            preOrderId: currentPreOrderId,
+            trxId: result.signature,
+            publicKey: publicKey.toBase58(),
+          });
           break; // Success, exit retry loop
         } catch {
           retryCount++;
@@ -425,12 +511,14 @@ export default function PurchasePage() {
           }
 
           // Wait before retry (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * retryCount)
+          );
         }
       }
 
-      // Check if registration was successful
-      if (!registrationResult) {
+      // Check if conversion was successful
+      if (!conversionResult) {
         showToastNotification(tError("registrationFailed"), "error");
         return;
       }
@@ -439,8 +527,8 @@ export default function PurchasePage() {
       setTransactionStatus("success");
 
       // Redirect to portfolio after successful purchase
-      // Registration result should contain the updated session with orderVoList
-      const hasSuccessfulOrder = registrationResult.orderVoList?.some(
+      // Conversion result should contain the updated session with orderVoList
+      const hasSuccessfulOrder = conversionResult.orderVoList?.some(
         (order) => order.purchaseStatus === 1
       );
       if (hasSuccessfulOrder) {
@@ -454,6 +542,9 @@ export default function PurchasePage() {
       setConfirmLoading(false);
       setShowConfirmModal(false);
       setShowStatusModal(false);
+
+      // Refetch session to ensure we have the latest data (including any pre-order)
+      refetchSession();
 
       // Handle different error types with user-friendly messages
       const errorMessage =
@@ -720,6 +811,15 @@ export default function PurchasePage() {
 
       {/* Terms Modal */}
       <TermsModal isOpen={showTermsModal} onAccept={handleAcceptTerms} />
+
+      {/* Unfinished Order Modal */}
+      <UnfinishedOrderModal
+        isOpen={showUnfinishedOrderModal}
+        preOrder={purchaseSession?.preOrderVO || null}
+        onSubmit={handleCompleteUnfinishedOrder}
+        onClose={() => setShowUnfinishedOrderModal(false)}
+        loading={convertToFormalMutation.isPending}
+      />
 
       {/* Toast Notification */}
       <Toast

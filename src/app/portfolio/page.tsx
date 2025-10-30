@@ -88,10 +88,11 @@ export default function PortfolioPage() {
   const t = useTranslations("portfolio");
   const router = useRouter();
   const { connected, connecting, publicKey } = useWallet();
-  const { data: purchaseSession, isLoading } = usePurchaseSession(
-    publicKey?.toBase58()
-  );
   const { data: purchaseDetails } = usePurchaseDetails();
+  const { data: purchaseSession, isLoading } = usePurchaseSession(
+    publicKey?.toBase58(),
+    purchaseDetails?.activityId
+  );
 
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<"purchase" | "transactions">(

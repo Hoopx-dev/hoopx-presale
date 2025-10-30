@@ -8,8 +8,10 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect, useState, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { usePurchaseDetails, usePurchaseSession } from '@/lib/purchase/hooks';
+import { usePurchaseDetails, usePurchaseSession, useConvertToFormal } from '@/lib/purchase/hooks';
 import MobileWalletModal from '@/components/mobile-wallet-modal';
+import UnfinishedOrderModal from '@/components/unfinished-order-modal';
+import Toast, { ToastType } from '@/components/toast';
 
 /**
  * Detect if running on mobile device
@@ -23,15 +25,32 @@ const isMobile = (): boolean => {
 
 function HomeContent() {
   const t = useTranslations('home');
+  const tUnfinished = useTranslations('unfinishedOrder');
   const router = useRouter();
   const { connected, connecting, publicKey } = useWallet();
   const { setVisible } = useWalletModal();
   const { data: purchaseDetails, isLoading } = usePurchaseDetails();
-  const { data: purchaseSession } = usePurchaseSession(publicKey?.toBase58());
+  const { data: purchaseSession, isLoading: sessionLoading } = usePurchaseSession(
+    publicKey?.toBase58(),
+    purchaseDetails?.activityId
+  );
+  const convertToFormalMutation = useConvertToFormal();
   const [showMobileModal, setShowMobileModal] = useState(false);
+  const [showUnfinishedOrderModal, setShowUnfinishedOrderModal] = useState(false);
+
+  // Toast state
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<ToastType>('info');
+  const [showToast, setShowToast] = useState(false);
 
   // Mounted state to prevent redirect during initial wallet reconnection
   const [mounted, setMounted] = useState(false);
+
+  const showToastNotification = (message: string, type: ToastType) => {
+    setToastMessage(message);
+    setToastType(type);
+    setShowToast(true);
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -48,6 +67,14 @@ function HomeContent() {
   useEffect(() => {
     sessionStorage.setItem('hoopx-current-page', 'home');
   }, []);
+
+  // Check for unfinished order and show modal
+  useEffect(() => {
+    if (connected && !sessionLoading && purchaseSession?.preOrderVO) {
+      // Has unfinished order - show modal
+      setShowUnfinishedOrderModal(true);
+    }
+  }, [connected, sessionLoading, purchaseSession]);
 
   // Redirect to portfolio if connected with successful purchase (Rule #3)
   useEffect(() => {
@@ -87,6 +114,64 @@ function HomeContent() {
       } else {
         setVisible(true);
       }
+    }
+  };
+
+  // Handle completing unfinished order
+  const handleCompleteUnfinishedOrder = async (trxId: string) => {
+    if (!publicKey || !purchaseSession?.preOrderVO) return;
+
+    try {
+      const preOrder = purchaseSession.preOrderVO;
+
+      // Validate preOrderId exists
+      if (!preOrder.preOrderId) {
+        showToastNotification(tUnfinished('errorMessage'), 'error');
+        return;
+      }
+
+      // Convert to formal order
+      const result = await convertToFormalMutation.mutateAsync({
+        preOrderId: preOrder.preOrderId,
+        trxId: trxId,
+        publicKey: publicKey.toBase58(),
+      });
+
+      // Close modal
+      setShowUnfinishedOrderModal(false);
+
+      // Show success toast
+      showToastNotification(tUnfinished('successMessage'), 'success');
+
+      // Check if registration was successful
+      const hasSuccessfulOrder = result.orderVoList?.some(
+        (order) => order.purchaseStatus === 1
+      );
+      if (hasSuccessfulOrder) {
+        // Redirect to portfolio after a short delay
+        setTimeout(() => {
+          router.push('/portfolio');
+        }, 1500);
+      }
+    } catch (error: unknown) {
+      // Check if error is from API response
+      let errorMessage = tUnfinished('errorMessage');
+
+      if (error && typeof error === 'object' && 'response' in error) {
+        const apiError = error as { response?: { data?: { msg?: string } } };
+        const msg = apiError.response?.data?.msg;
+
+        // Check for transaction hash mismatch error
+        if (msg && msg.includes("交易哈希与订单数据匹配不通过")) {
+          errorMessage = tUnfinished('errorMismatch');
+        } else if (msg) {
+          errorMessage = msg;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      showToastNotification(errorMessage, 'error');
     }
   };
 
@@ -189,6 +274,23 @@ function HomeContent() {
       <MobileWalletModal
         isOpen={showMobileModal}
         onClose={() => setShowMobileModal(false)}
+      />
+
+      {/* Unfinished Order Modal */}
+      <UnfinishedOrderModal
+        isOpen={showUnfinishedOrderModal}
+        preOrder={purchaseSession?.preOrderVO || null}
+        onSubmit={handleCompleteUnfinishedOrder}
+        onClose={() => setShowUnfinishedOrderModal(false)}
+        loading={convertToFormalMutation.isPending}
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
       />
     </div>
   );

@@ -281,5 +281,24 @@
     "terms": "条款与条件",
     "privacy": "隐私政策",
     "copyright": "© 2025 HOOPX。保留所有权利。"
+  },
+  "unfinishedOrder": {
+    "title": "完成您的购买",
+    "description": "您有一笔未完成的订单。请输入您的交易ID以完成购买。",
+    "amount": "购买金额",
+    "receive": "将获得",
+    "createdAt": "订单创建时间",
+    "trxIdLabel": "交易ID",
+    "trxIdPlaceholder": "输入您的交易ID",
+    "trxIdHint": "您可以在钱包的交易历史中找到交易ID",
+    "submit": "提交",
+    "submitting": "提交中...",
+    "cancel": "稍后",
+    "errorEmpty": "请输入交易ID",
+    "errorInvalid": "交易ID格式无效",
+    "errorMessage": "完成订单失败，请重试。",
+    "errorMismatch": "交易哈希与订单数据匹配不通过，请检查交易哈希是否正确",
+    "successTitle": "购买完成！",
+    "successMessage": "您的购买已成功完成"
   }
 }

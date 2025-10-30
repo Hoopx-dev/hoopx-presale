@@ -2,7 +2,9 @@ import { decryptAes } from "@/lib/crypto/decrypt";
 import { http } from "@/lib/http";
 import { useHoopxWalletStore } from "@/lib/store/useHoopxWalletStore";
 import type {
+  CreatePreOrderDTO,
   FetchSessionVO,
+  PreOrderToFormalDTO,
   PurchaseDetailsVO,
   RegisterPurchaseDTO,
 } from "./types";
@@ -47,14 +49,16 @@ export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO> => {
 };
 
 /**
- * GET /api/purchase/session?public_key={walletAddress}
+ * POST /api/purchase/session
  * Retrieves the purchase session information for a connected wallet
  */
 export const getPurchaseSession = async (
-  publicKey: string
+  publicKey: string,
+  activityId: string
 ): Promise<FetchSessionVO> => {
-  const { data } = await http.get("/api/purchase/session", {
-    params: { public_key: publicKey },
+  const { data } = await http.post("/api/purchase/session", {
+    publicKey,
+    activityId,
   });
 
   // Handle potential wrapper structure like { code: 200, data: {...} }
@@ -92,5 +96,38 @@ export const getTerms = async (lang: string = 'en'): Promise<string> => {
       Accept: "text/markdown",
     },
   });
+  return data;
+};
+
+/**
+ * POST /api/purchase/create-pre
+ * Creates a pre-order before wallet transaction
+ * Returns the pre-order ID needed for convert-to-formal
+ */
+export const createPreOrder = async (
+  dto: CreatePreOrderDTO
+): Promise<{ preOrderId: string }> => {
+  const { data } = await http.post("/api/purchase/create-pre", dto);
+
+  // Handle potential wrapper structure
+  if (data && typeof data === "object" && "data" in data) {
+    return data.data;
+  }
+  return data;
+};
+
+/**
+ * POST /api/purchase/convert-to-formal
+ * Converts a pre-order to formal order after successful transaction
+ */
+export const convertToFormal = async (
+  dto: PreOrderToFormalDTO
+): Promise<FetchSessionVO> => {
+  const { data } = await http.post("/api/purchase/convert-to-formal", dto);
+
+  // Handle potential wrapper structure
+  if (data && typeof data === "object" && "data" in data) {
+    return data.data;
+  }
   return data;
 };
