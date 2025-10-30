@@ -98,7 +98,14 @@ function HomeContent() {
   // Handle buy button click
   const handleBuyClick = () => {
     if (connected) {
-      // Already connected, check if purchased
+      // Check for unfinished pre-order first
+      if (purchaseSession?.preOrderVO) {
+        // Has unfinished order - show modal instead of redirecting
+        setShowUnfinishedOrderModal(true);
+        return;
+      }
+
+      // Check if already purchased
       const hasSuccessfulPurchase = purchaseSession?.orderVoList?.some(
         order => order.purchaseStatus === 1
       );
