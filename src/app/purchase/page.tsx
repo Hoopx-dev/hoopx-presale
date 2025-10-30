@@ -124,6 +124,9 @@ export default function PurchasePage() {
   const [showUnfinishedOrderModal, setShowUnfinishedOrderModal] =
     useState(false);
 
+  // Flag to track if we're currently processing a purchase (to prevent modal from showing during transaction)
+  const [isProcessingPurchase, setIsProcessingPurchase] = useState(false);
+
   // Redirect if not connected (Rule #1)
   useEffect(() => {
     if (!connected) {
@@ -232,13 +235,13 @@ export default function PurchasePage() {
     setShowTermsModal(false);
   };
 
-  // Check for unfinished order and show modal
+  // Check for unfinished order and show modal (only if not currently processing a purchase)
   useEffect(() => {
-    if (connected && !sessionLoading && purchaseSession?.preOrderVO) {
+    if (connected && !sessionLoading && purchaseSession?.preOrderVO && !isProcessingPurchase) {
       // Has unfinished order - show modal
       setShowUnfinishedOrderModal(true);
     }
-  }, [connected, sessionLoading, purchaseSession]);
+  }, [connected, sessionLoading, purchaseSession, isProcessingPurchase]);
 
   // Show terms modal only when navigating from a different page (not on refresh or language change)
   useEffect(() => {
@@ -365,6 +368,8 @@ export default function PurchasePage() {
     try {
       // Set loading state on confirm button
       setConfirmLoading(true);
+      // Set processing flag to prevent unfinished order modal from showing during purchase
+      setIsProcessingPurchase(true);
 
       // Refetch purchase details to verify presale round is still active
       const { data: latestDetails } = await refetchDetails();
@@ -372,6 +377,7 @@ export default function PurchasePage() {
         // Presale round has ended
         setConfirmLoading(false);
         setShowConfirmModal(false);
+        setIsProcessingPurchase(false);
         showToastNotification(tError("presaleRoundEnded"), "error");
         return;
       }
@@ -381,6 +387,8 @@ export default function PurchasePage() {
       const currentActivityId = latestDetails.activityId;
 
       if (!hoopxWalletAddress || !currentActivityId) {
+        setConfirmLoading(false);
+        setIsProcessingPurchase(false);
         showToastNotification(tError("missingData"), "error");
         return;
       }
@@ -395,6 +403,8 @@ export default function PurchasePage() {
           order.activityId === currentActivityId
       );
       if (hasExistingPurchase) {
+        setConfirmLoading(false);
+        setIsProcessingPurchase(false);
         showToastNotification(tError("alreadyPurchasedError"), "error");
         setTimeout(() => {
           router.push("/portfolio");
@@ -441,14 +451,30 @@ export default function PurchasePage() {
       } catch (error: unknown) {
         setConfirmLoading(false);
         setShowConfirmModal(false);
+        setIsProcessingPurchase(false);
         const errorMessage =
           error instanceof Error ? error.message : "Failed to create order";
         showToastNotification(errorMessage, "error");
         return;
       }
 
+      // Debug: Log what we got from create-pre
+      console.log("[Purchase Flow] Pre-order result:", preOrderResult);
+
       // Store pre-order ID for later use
       const currentPreOrderId = preOrderResult.preOrderId;
+
+      // Validate preOrderId exists
+      if (!currentPreOrderId) {
+        console.error("[Purchase Flow] Missing preOrderId from create-pre response");
+        setConfirmLoading(false);
+        setShowConfirmModal(false);
+        setIsProcessingPurchase(false);
+        showToastNotification(tError("missingData"), "error");
+        return;
+      }
+
+      console.log("[Purchase Flow] Using preOrderId:", currentPreOrderId);
 
       // Step 2: Execute transfer - this will open wallet
       // Only show sending modal AFTER user confirms in wallet
@@ -481,11 +507,14 @@ export default function PurchasePage() {
 
       while (retryCount < maxRetries) {
         try {
-          conversionResult = await convertToFormalMutation.mutateAsync({
+          const convertPayload = {
             preOrderId: currentPreOrderId,
             trxId: result.signature,
             publicKey: publicKey.toBase58(),
-          });
+          };
+          console.log("[Purchase Flow] Converting to formal with payload:", convertPayload);
+
+          conversionResult = await convertToFormalMutation.mutateAsync(convertPayload);
           break; // Success, exit retry loop
         } catch {
           retryCount++;
@@ -529,6 +558,8 @@ export default function PurchasePage() {
         (order) => order.purchaseStatus === 1
       );
       if (hasSuccessfulOrder) {
+        // Clear processing flag
+        setIsProcessingPurchase(false);
         // Small delay to show success modal briefly
         setTimeout(() => {
           router.push("/portfolio");
@@ -539,6 +570,8 @@ export default function PurchasePage() {
       setConfirmLoading(false);
       setShowConfirmModal(false);
       setShowStatusModal(false);
+      // Clear processing flag so unfinished order modal can appear if needed
+      setIsProcessingPurchase(false);
 
       // Refetch session to ensure we have the latest data (including any pre-order)
       refetchSession();

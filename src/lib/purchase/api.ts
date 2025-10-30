@@ -111,7 +111,8 @@ export const createPreOrder = async (
 
   // Handle potential wrapper structure
   if (data && typeof data === "object" && "data" in data) {
-    return data.data;
+    // API returns { data: "ORD-xxx" }, we need to wrap it as { preOrderId: "ORD-xxx" }
+    return { preOrderId: data.data };
   }
   return data;
 };
