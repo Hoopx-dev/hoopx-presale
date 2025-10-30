@@ -127,6 +127,12 @@ export const convertToFormal = async (
 
   // Handle potential wrapper structure
   if (data && typeof data === "object" && "data" in data) {
+    // Check if the response indicates an error (code 500, data is null)
+    if (data.code === 500 || data.data === null) {
+      // Throw error with the message from the API
+      const errorMsg = data.msg || "Failed to convert order";
+      throw new Error(errorMsg);
+    }
     return data.data;
   }
   return data;

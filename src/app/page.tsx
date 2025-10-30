@@ -164,18 +164,15 @@ function HomeContent() {
       // Check if error is from API response
       let errorMessage = tUnfinished('errorMessage');
 
-      if (error && typeof error === 'object' && 'response' in error) {
-        const apiError = error as { response?: { data?: { msg?: string } } };
-        const msg = apiError.response?.data?.msg;
+      if (error instanceof Error) {
+        const msg = error.message;
 
         // Check for transaction hash mismatch error
-        if (msg && msg.includes("交易哈希与订单数据匹配不通过")) {
+        if (msg.includes("交易哈希与订单数据匹配不通过")) {
           errorMessage = tUnfinished('errorMismatch');
-        } else if (msg) {
+        } else {
           errorMessage = msg;
         }
-      } else if (error instanceof Error) {
-        errorMessage = error.message;
       }
 
       showToastNotification(errorMessage, 'error');

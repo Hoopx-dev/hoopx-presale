@@ -111,6 +111,12 @@ export function useConvertToFormal() {
   return useMutation({
     mutationFn: (dto: PreOrderToFormalDTO) => convertToFormal(dto),
     onSuccess: (data) => {
+      // Safety check: only proceed if data is valid
+      if (!data || !data.publicKey) {
+        console.error('Invalid data returned from convert-to-formal');
+        return;
+      }
+
       // Update session in store
       setSession(data);
 
