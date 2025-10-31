@@ -8,7 +8,7 @@ import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useEffect, useState, Suspense } from 'react';
 import Header from '@/components/header';
 import { Button } from '@/components/ui/button';
-import { usePurchaseDetails, usePurchaseSession, useConvertToFormal } from '@/lib/purchase/hooks';
+import { usePurchaseDetails, usePurchaseSession, useConvertToFormal, useDeletePreOrder } from '@/lib/purchase/hooks';
 import MobileWalletModal from '@/components/mobile-wallet-modal';
 import UnfinishedOrderModal from '@/components/unfinished-order-modal';
 import Toast, { ToastType } from '@/components/toast';
@@ -35,6 +35,7 @@ function HomeContent() {
     purchaseDetails?.activityId
   );
   const convertToFormalMutation = useConvertToFormal();
+  const deletePreOrderMutation = useDeletePreOrder();
   const [showMobileModal, setShowMobileModal] = useState(false);
   const [showUnfinishedOrderModal, setShowUnfinishedOrderModal] = useState(false);
 
@@ -179,6 +180,38 @@ function HomeContent() {
     }
   };
 
+  // Handle canceling pre-order
+  const handleCancelPreOrder = async () => {
+    if (!publicKey || !purchaseSession?.preOrderVO || !purchaseDetails?.activityId) return;
+
+    try {
+      const preOrder = purchaseSession.preOrderVO;
+
+      // Validate preOrderId exists
+      if (!preOrder.preOrderId) {
+        showToastNotification(tUnfinished('cancelError'), 'error');
+        return;
+      }
+
+      // Delete pre-order
+      await deletePreOrderMutation.mutateAsync({
+        activityId: purchaseDetails.activityId,
+        publicKey: publicKey.toBase58(),
+        preOrderId: preOrder.preOrderId,
+      });
+
+      // Close modal
+      setShowUnfinishedOrderModal(false);
+
+      // Show success toast
+      showToastNotification(tUnfinished('cancelSuccess'), 'success');
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : tUnfinished('cancelError');
+      showToastNotification(errorMessage, 'error');
+    }
+  };
+
   // Check if no active activity (purchaseDetails is null/undefined)
   const hasActiveActivity = !isLoading && purchaseDetails !== null && purchaseDetails !== undefined;
 
@@ -285,8 +318,10 @@ function HomeContent() {
         isOpen={showUnfinishedOrderModal}
         preOrder={purchaseSession?.preOrderVO || null}
         onSubmit={handleCompleteUnfinishedOrder}
+        onCancel={handleCancelPreOrder}
         onClose={() => setShowUnfinishedOrderModal(false)}
         loading={convertToFormalMutation.isPending}
+        cancelLoading={deletePreOrderMutation.isPending}
       />
 
       {/* Toast Notification */}

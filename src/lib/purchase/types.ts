@@ -85,6 +85,13 @@ export interface PreOrderToFormalDTO {
   publicKey: string;
 }
 
+// Delete pre-order request
+export interface DeletePreOrderDTO {
+  activityId: string;
+  publicKey: string;
+  preOrderId: string;
+}
+
 // Pre-order query request
 export interface PreOrderQueryDTO {
   activityId: string;

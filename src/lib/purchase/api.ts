@@ -3,6 +3,7 @@ import { http } from "@/lib/http";
 import { useHoopxWalletStore } from "@/lib/store/useHoopxWalletStore";
 import type {
   CreatePreOrderDTO,
+  DeletePreOrderDTO,
   FetchSessionVO,
   PreOrderToFormalDTO,
   PurchaseDetailsVO,
@@ -137,4 +138,22 @@ export const convertToFormal = async (
     return data.data;
   }
   return data;
+};
+
+/**
+ * POST /api/purchase/del-pre
+ * Deletes a pre-order
+ */
+export const deletePreOrder = async (
+  dto: DeletePreOrderDTO
+): Promise<void> => {
+  const { data } = await http.post("/api/purchase/del-pre", dto);
+
+  // Check if there's an error in the response
+  if (data && typeof data === "object" && "code" in data) {
+    if (data.code !== 200) {
+      const errorMsg = data.msg || "Failed to delete pre-order";
+      throw new Error(errorMsg);
+    }
+  }
 };

@@ -9,20 +9,25 @@ interface UnfinishedOrderModalProps {
   isOpen: boolean;
   preOrder: PreOrderVO | null;
   onSubmit: (trxId: string) => void;
+  onCancel: () => void;
   onClose: () => void;
   loading?: boolean;
+  cancelLoading?: boolean;
 }
 
 export default function UnfinishedOrderModal({
   isOpen,
   preOrder,
   onSubmit,
+  onCancel,
   onClose,
   loading = false,
+  cancelLoading = false,
 }: UnfinishedOrderModalProps) {
   const t = useTranslations("unfinishedOrder");
   const [trxId, setTrxId] = useState("");
   const [error, setError] = useState("");
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -41,6 +46,7 @@ export default function UnfinishedOrderModal({
     if (!isOpen) {
       setTrxId("");
       setError("");
+      setShowCancelConfirm(false);
     }
   }, [isOpen]);
 
@@ -63,6 +69,82 @@ export default function UnfinishedOrderModal({
   };
 
   const formatNumber = (num: number) => num.toLocaleString("en-US");
+
+  const handleCancelClick = () => {
+    setShowCancelConfirm(true);
+  };
+
+  const handleConfirmCancel = () => {
+    setShowCancelConfirm(false);
+    onCancel();
+  };
+
+  const handleCancelConfirmClose = () => {
+    setShowCancelConfirm(false);
+  };
+
+  // Show confirmation dialog instead of main modal
+  if (showCancelConfirm) {
+    return (
+      <div className='fixed inset-0 z-50 flex items-center justify-center'>
+        {/* Backdrop */}
+        <div
+          className='absolute inset-0 bg-black/60 backdrop-blur-sm'
+          onClick={handleCancelConfirmClose}
+        />
+
+        {/* Confirmation Dialog */}
+        <div
+          className='relative w-full max-w-sm mx-4 bg-gradient-to-b from-gray-900 to-black rounded-2xl p-6 animate-scale-in'
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className='text-white text-lg font-bold text-center mb-4'>
+            {t("cancelConfirmTitle")}
+          </h3>
+          <p className='text-gray-400 text-sm text-center mb-6'>
+            {t("cancelConfirmMessage")}
+          </p>
+          <div className='flex gap-3'>
+            <Button
+              variant='secondary'
+              size='large'
+              onClick={handleCancelConfirmClose}
+              disabled={cancelLoading}
+              className='flex-1'
+            >
+              {t("cancelConfirmNo")}
+            </Button>
+            <Button
+              variant='primary'
+              size='large'
+              onClick={handleConfirmCancel}
+              loading={cancelLoading}
+              disabled={cancelLoading}
+              className='flex-1 !bg-red-600 hover:!bg-red-700 active:!bg-red-800'
+            >
+              {t("cancelConfirmYes")}
+            </Button>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @keyframes scale-in {
+            from {
+              transform: scale(0.9);
+              opacity: 0;
+            }
+            to {
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+          .animate-scale-in {
+            animation: scale-in 0.2s ease-out;
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className='fixed inset-0 z-50 flex items-end sm:items-center sm:justify-center'>
@@ -141,7 +223,7 @@ export default function UnfinishedOrderModal({
           <Button
             variant='secondary'
             size='large'
-            onClick={onClose}
+            onClick={handleCancelClick}
             disabled={loading}
             className='flex-1'
           >

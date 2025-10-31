@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getPurchaseDetails, getPurchaseSession, registerPurchase, getTerms, createPreOrder, convertToFormal } from './api';
+import { getPurchaseDetails, getPurchaseSession, registerPurchase, getTerms, createPreOrder, convertToFormal, deletePreOrder } from './api';
 import { QK } from '@/lib/queryKeys';
-import type { RegisterPurchaseDTO, CreatePreOrderDTO, PreOrderToFormalDTO } from './types';
+import type { RegisterPurchaseDTO, CreatePreOrderDTO, PreOrderToFormalDTO, DeletePreOrderDTO } from './types';
 import { usePurchaseStore } from '@/store/purchase';
 
 /**
@@ -127,6 +127,24 @@ export function useConvertToFormal() {
       // Invalidate details to refresh purchased amount
       queryClient.invalidateQueries({
         queryKey: QK.purchase.details(),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to delete a pre-order
+ * Invalidates session query on success
+ */
+export function useDeletePreOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: DeletePreOrderDTO) => deletePreOrder(dto),
+    onSuccess: (_data, variables) => {
+      // Invalidate session query to refetch without the pre-order
+      queryClient.invalidateQueries({
+        queryKey: ['purchase', 'session', variables.publicKey],
       });
     },
   });

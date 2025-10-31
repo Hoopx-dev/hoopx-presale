@@ -11,6 +11,7 @@ import InfoListCard from "@/components/ui/info-list-card";
 import {
   useConvertToFormal,
   useCreatePreOrder,
+  useDeletePreOrder,
   usePurchaseDetails,
   usePurchaseSession,
 } from "@/lib/purchase/hooks";
@@ -50,6 +51,7 @@ export default function PurchasePage() {
   const { referralAddress } = useReferralStore();
   const createPreOrderMutation = useCreatePreOrder();
   const convertToFormalMutation = useConvertToFormal();
+  const deletePreOrderMutation = useDeletePreOrder();
 
   // Referral input state
   const [showReferralInput, setShowReferralInput] = useState(false);
@@ -349,6 +351,38 @@ export default function PurchasePage() {
         }
       }
 
+      showToastNotification(errorMessage, "error");
+    }
+  };
+
+  // Handle canceling pre-order
+  const handleCancelPreOrder = async () => {
+    if (!publicKey || !purchaseSession?.preOrderVO || !purchaseDetails?.activityId) return;
+
+    try {
+      const preOrder = purchaseSession.preOrderVO;
+
+      // Validate preOrderId exists
+      if (!preOrder.preOrderId) {
+        showToastNotification(tUnfinished("cancelError"), "error");
+        return;
+      }
+
+      // Delete pre-order
+      await deletePreOrderMutation.mutateAsync({
+        activityId: purchaseDetails.activityId,
+        publicKey: publicKey.toBase58(),
+        preOrderId: preOrder.preOrderId,
+      });
+
+      // Close modal
+      setShowUnfinishedOrderModal(false);
+
+      // Show success toast
+      showToastNotification(tUnfinished("cancelSuccess"), "success");
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : tUnfinished("cancelError");
       showToastNotification(errorMessage, "error");
     }
   };
@@ -847,8 +881,10 @@ export default function PurchasePage() {
         isOpen={showUnfinishedOrderModal}
         preOrder={purchaseSession?.preOrderVO || null}
         onSubmit={handleCompleteUnfinishedOrder}
+        onCancel={handleCancelPreOrder}
         onClose={() => setShowUnfinishedOrderModal(false)}
         loading={convertToFormalMutation.isPending}
+        cancelLoading={deletePreOrderMutation.isPending}
       />
 
       {/* Toast Notification */}
