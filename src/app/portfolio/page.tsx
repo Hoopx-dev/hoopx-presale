@@ -158,8 +158,9 @@ export default function PortfolioPage() {
 
   const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return "0";
-    // Return the number as string without any rounding
-    return num.toString();
+    // Round down to 6 decimals using Math.floor
+    const rounded = Math.floor(num * 1000000) / 1000000;
+    return rounded.toString();
   };
 
   // Get date label for transaction
@@ -209,7 +210,7 @@ export default function PortfolioPage() {
           {/* Total Assets */}
           <div className='text-center mb-8'>
             <p className='text-white/70 text-sm mb-2'>{t("totalAssets")}</p>
-            <p className={`text-white font-bold mb-1 ${formatTokenAmount(totalHoopxAmount).length > 8 ? 'text-4xl' : 'text-6xl'}`}>
+            <p className='text-white font-bold mb-1 text-2xl'>
               {formatTokenAmount(totalHoopxAmount)}
             </p>
             <p className='text-white text-xl'>HOOPX</p>
