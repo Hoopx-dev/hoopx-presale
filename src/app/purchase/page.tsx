@@ -297,6 +297,14 @@ export default function PurchasePage() {
   // Handle buy button click
   const handleBuyClick = () => {
     if (!selectedTier || alreadyPurchased) return;
+
+    // Check for existing pre-order first
+    if (purchaseSession?.preOrderVO) {
+      // Has unfinished order - show modal instead of creating new purchase
+      setShowUnfinishedOrderModal(true);
+      return;
+    }
+
     setShowConfirmModal(true);
   };
 
