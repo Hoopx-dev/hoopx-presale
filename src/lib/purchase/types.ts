@@ -28,10 +28,24 @@ export interface OrderVO {
   vestingFrequency: number; // 1=monthly, 2=yearly
 }
 
-// Session response with array of orders
+// Pre-order (unfinished order) structure
+export interface PreOrderVO {
+  preOrderId?: string; // Pre-order ID for converting to formal
+  activityId: string;
+  userId: number;
+  userWallet: string;
+  orderMatch: boolean;
+  amountToken: number; // HOOPX amount
+  amountUsdt: number; // USDT amount
+  priceUsdtPerToken: number;
+  createTime: string;
+}
+
+// Session response with array of orders and optional pre-order
 export interface FetchSessionVO {
   publicKey: string;
   orderVoList: OrderVO[];
+  preOrderVO?: PreOrderVO | null; // Unfinished order
 }
 
 // Legacy support - keep this for backward compatibility during transition
@@ -53,4 +67,33 @@ export interface RegisterPurchaseDTO {
   trxId: string;
   activityId: string;
   referralWalletAddress?: string;
+}
+
+// Pre-order creation request (create-pre)
+export interface CreatePreOrderDTO {
+  publicKey: string;
+  referralWalletAddress?: string;
+  amount: number; // USDT amount
+  trxId?: string; // Optional - empty for pre-orders
+  activityId: string;
+}
+
+// Convert pre-order to formal request
+export interface PreOrderToFormalDTO {
+  preOrderId: string;
+  trxId: string;
+  publicKey: string;
+}
+
+// Delete pre-order request
+export interface DeletePreOrderDTO {
+  activityId: string;
+  publicKey: string;
+  preOrderId: string;
+}
+
+// Pre-order query request
+export interface PreOrderQueryDTO {
+  activityId: string;
+  publicKey: string;
 }

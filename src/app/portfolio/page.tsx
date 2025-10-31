@@ -88,10 +88,11 @@ export default function PortfolioPage() {
   const t = useTranslations("portfolio");
   const router = useRouter();
   const { connected, connecting, publicKey } = useWallet();
-  const { data: purchaseSession, isLoading } = usePurchaseSession(
-    publicKey?.toBase58()
-  );
   const { data: purchaseDetails } = usePurchaseDetails();
+  const { data: purchaseSession, isLoading } = usePurchaseSession(
+    publicKey?.toBase58(),
+    purchaseDetails?.activityId
+  );
 
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<"purchase" | "transactions">(
@@ -151,23 +152,15 @@ export default function PortfolioPage() {
     const total = successfulOrders.reduce((sum, order) => {
       return sum + order.amount / order.rate;
     }, 0);
-    // Round down to 2 decimals if >= 100, otherwise 6 decimals
-    const decimals = total >= 100 ? 2 : 6;
-    const multiplier = Math.pow(10, decimals);
-    return Math.floor(total * multiplier) / multiplier;
+    // Return raw total without any rounding
+    return total;
   }, [successfulOrders]);
 
   const formatTokenAmount = (num: number | undefined | null) => {
     if (num === undefined || num === null) return "0";
-    // If amount >= 100, round down to 2 decimals, otherwise round down to 6 decimals
-    const decimals = num >= 100 ? 2 : 6;
-    const multiplier = Math.pow(10, decimals);
-    const roundedDown = Math.floor(num * multiplier) / multiplier;
-
-    // Format with proper decimal places without rounding
-    const [intPart, decPart = ""] = roundedDown.toFixed(decimals).split(".");
-    const formattedInt = parseInt(intPart).toLocaleString("en-US");
-    return decPart ? `${formattedInt}.${decPart}` : formattedInt;
+    // Round down to 6 decimals using Math.floor
+    const rounded = Math.floor(num * 1000000) / 1000000;
+    return rounded.toString();
   };
 
   // Get date label for transaction
@@ -217,7 +210,7 @@ export default function PortfolioPage() {
           {/* Total Assets */}
           <div className='text-center mb-8'>
             <p className='text-white/70 text-sm mb-2'>{t("totalAssets")}</p>
-            <p className='text-white text-6xl font-bold mb-1'>
+            <p className='text-white font-bold mb-1 text-2xl'>
               {formatTokenAmount(totalHoopxAmount)}
             </p>
             <p className='text-white text-xl'>HOOPX</p>

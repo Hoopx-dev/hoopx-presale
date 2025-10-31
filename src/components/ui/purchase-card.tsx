@@ -85,7 +85,7 @@ export default function PurchaseCard({
 
         {/* Amount Info */}
         <div className="text-right">
-          <p className="text-white font-bold text-2xl mb-1">
+          <p className="text-white font-bold text-base mb-1">
             {formatUSDT(amount)} USDT
           </p>
           <p className="text-white/70 text-sm">
