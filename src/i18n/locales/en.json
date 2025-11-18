@@ -210,7 +210,16 @@
     "from": "From",
     "buyNow": "Buy New Round",
     "newPresaleAvailable": "New presale available!",
-    "buyNowButton": "BUY NOW"
+    "buyNowButton": "BUY NOW",
+    "locked": "Locked",
+    "vesting": "Vesting",
+    "fullyVested": "Fully Vested",
+    "totalLocked": "Total Locked",
+    "stillLocked": "Still Locked",
+    "nextUnlock": "Next Unlock",
+    "claimAll": "Claim All",
+    "claimAvailable": "Claim {amount} HOOPX",
+    "cliffNotPassed": "Tokens will unlock on {date}"
   },
   "terms": {
     "title": "Terms and Conditions",

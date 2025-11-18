@@ -4,6 +4,7 @@ import Header from "@/components/header";
 import InfoListCard from "@/components/ui/info-list-card";
 import PurchaseCard from "@/components/ui/purchase-card";
 import TransactionCard from "@/components/ui/transaction-card";
+import VestingCard from "@/components/vesting-card";
 import { usePurchaseDetails, usePurchaseSession } from "@/lib/purchase/hooks";
 import type { OrderVO } from "@/lib/purchase/types";
 import { useTransaction } from "@/lib/solana/hooks";
@@ -130,6 +131,16 @@ export default function PortfolioPage() {
   useEffect(() => {
     sessionStorage.setItem("hoopx-current-page", "portfolio");
   }, []);
+
+  // Handle claim button click
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleClaim = (order: OrderVO) => {
+    // Open Jupiter Lock page in new tab
+    // TODO: Replace with actual Jupiter Lock URL for claiming
+    // Format: https://lock.jup.ag/claim/{lockAddress}
+    // For now, open Jupiter Lock homepage
+    window.open('https://lock.jup.ag', '_blank');
+  };
 
   // Redirect if not connected or no purchase (Rules #1, #2)
   useEffect(() => {
@@ -277,37 +288,45 @@ export default function PortfolioPage() {
 
                     {/* Collapsible Purchase Details */}
                     {isExpanded && (
-                      <InfoListCard
-                        items={[
-                          {
-                            label: t("purchaseTime"),
-                            value: order.subscriptionTime || "-",
-                          },
-                          {
-                            label: t("purchaseStatus"),
-                            value: t("notReleased"),
-                          },
-                          {
-                            label: t("vestingPeriod"),
-                            value: `${order.vesting || "12"} ${t("months")}`,
-                          },
-                          {
-                            label: t("cliffPeriod"),
-                            value: `${order.cliff || "3"} ${t("months")}`,
-                          },
-                          {
-                            label: t("releaseFrequency"),
-                            value: (() => {
-                              const freq = Number(order.vestingFrequency) ?? 1;
-                              if (freq === 1) return t("perMonth");
-                              if (freq === 2) return t("perYear");
-                              // Fallback for unexpected values
-                              return t("perMonth");
-                            })(),
-                          },
-                        ]}
-                        className='mb-4'
-                      />
+                      <>
+                        <InfoListCard
+                          items={[
+                            {
+                              label: t("purchaseTime"),
+                              value: order.subscriptionTime || "-",
+                            },
+                            {
+                              label: t("purchaseStatus"),
+                              value: t("notReleased"),
+                            },
+                            {
+                              label: t("vestingPeriod"),
+                              value: `${order.vesting || "12"} ${t("months")}`,
+                            },
+                            {
+                              label: t("cliffPeriod"),
+                              value: `${order.cliff || "3"} ${t("months")}`,
+                            },
+                            {
+                              label: t("releaseFrequency"),
+                              value: (() => {
+                                const freq = Number(order.vestingFrequency) ?? 1;
+                                if (freq === 1) return t("perMonth");
+                                if (freq === 2) return t("perYear");
+                                // Fallback for unexpected values
+                                return t("perMonth");
+                              })(),
+                            },
+                          ]}
+                          className='mb-4'
+                        />
+
+                        {/* Vesting Progress Card */}
+                        <VestingCard
+                          order={order}
+                          onClaim={() => handleClaim(order)}
+                        />
+                      </>
                     )}
                   </div>
                 );
