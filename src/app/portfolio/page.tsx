@@ -133,13 +133,15 @@ export default function PortfolioPage() {
   }, []);
 
   // Handle claim button click
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleClaim = (order: OrderVO) => {
-    // Open Jupiter Lock page in new tab
-    // TODO: Replace with actual Jupiter Lock URL for claiming
-    // Format: https://lock.jup.ag/claim/{lockAddress}
-    // For now, open Jupiter Lock homepage
-    window.open('https://lock.jup.ag', '_blank');
+    // Check if order has Jupiter Lock escrow address
+    if (order.jupiterLockAddress) {
+      // Open specific lock page with escrow address
+      window.open(`https://lock.jup.ag/escrow/${order.jupiterLockAddress}`, '_blank');
+    } else {
+      // Fallback: Open Jupiter Lock homepage where users can connect wallet to find their locks
+      window.open('https://lock.jup.ag', '_blank');
+    }
   };
 
   // Redirect if not connected or no purchase (Rules #1, #2)

@@ -26,6 +26,7 @@ export interface OrderVO {
   cliff: string;
   vesting: string;
   vestingFrequency: number; // 1=monthly, 2=yearly
+  jupiterLockAddress?: string; // Jupiter Lock escrow address for claiming tokens
 }
 
 // Pre-order (unfinished order) structure
