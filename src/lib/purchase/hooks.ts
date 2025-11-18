@@ -7,6 +7,7 @@ import { usePurchaseStore } from '@/store/purchase';
 /**
  * Hook to fetch purchase details (activity configuration and tiers)
  * Automatically refetches every 60 seconds
+ * Returns null if the activity has expired
  */
 export function usePurchaseDetails(enabled = true) {
   return useQuery({
@@ -20,7 +21,7 @@ export function usePurchaseDetails(enabled = true) {
 
 /**
  * Hook to fetch purchase session for a specific wallet
- * Only fetches when publicKey and activityId are provided
+ * Only requires publicKey - activityId is optional
  * Automatically stores session data in the purchase store
  */
 export function usePurchaseSession(publicKey?: string, activityId?: string) {
@@ -29,12 +30,12 @@ export function usePurchaseSession(publicKey?: string, activityId?: string) {
   return useQuery({
     queryKey: QK.purchase.session(publicKey, activityId),
     queryFn: async () => {
-      const session = await getPurchaseSession(publicKey!, activityId!);
+      const session = await getPurchaseSession(publicKey!, activityId);
       // Store session in global store
       setSession(session);
       return session;
     },
-    enabled: !!publicKey && !!activityId,
+    enabled: !!publicKey, // Only require publicKey, activityId is optional
     staleTime: 30 * 1000, // 30 seconds
   });
 }

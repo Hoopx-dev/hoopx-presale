@@ -11,10 +11,54 @@ import type {
 } from "./types";
 
 /**
+ * Helper function to check if an activity has expired
+ * @param endTime - End time string in format "YYYY-MM-DD HH:mm:ss"
+ * @param timezone - Timezone string (e.g., "GMT+8")
+ * @returns true if the activity has expired, false otherwise
+ */
+const isActivityExpired = (endTime: string, timezone: string): boolean => {
+  if (!endTime) return false; // No end time means activity is ongoing
+
+  try {
+    // Parse the timezone offset (e.g., "GMT+8" -> 8, "GMT-5" -> -5)
+    const timezoneMatch = timezone.match(/GMT([+-]\d+)/);
+    if (!timezoneMatch) {
+      console.warn("Invalid timezone format:", timezone);
+      return false; // If we can't parse timezone, don't mark as expired
+    }
+
+    const timezoneOffset = parseInt(timezoneMatch[1]);
+
+    // Parse the endTime string (format: "YYYY-MM-DD HH:mm:ss")
+    const [datePart, timePart] = endTime.split(" ");
+    const [year, month, day] = datePart.split("-").map(Number);
+    const [hours, minutes, seconds] = timePart.split(":").map(Number);
+
+    // Create a date object in the specified timezone
+    // First create the date in UTC, then adjust for the timezone offset
+    const endDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds));
+
+    // Subtract the timezone offset to get the actual UTC time
+    // If GMT+8, we need to subtract 8 hours to get UTC
+    endDate.setHours(endDate.getHours() - timezoneOffset);
+
+    // Get current time
+    const now = new Date();
+
+    // Check if current time is past the end time
+    return now > endDate;
+  } catch (error) {
+    console.error("Error parsing activity end time:", error);
+    return false; // If parsing fails, don't mark as expired
+  }
+};
+
+/**
  * GET /api/purchase/details
  * Retrieves the current presale activity configuration and available purchase tiers
+ * Returns null if the activity has expired
  */
-export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO> => {
+export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO | null> => {
   const { data } = await http.get("/api/purchase/details");
 
   // Handle potential wrapper structure like { code: 200, data: {...} } or { success: true, data: {...} }
@@ -29,6 +73,14 @@ export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO> => {
     }
   } else {
     result = data;
+  }
+
+  // Check if activity has expired
+  if (result.endTime && result.timezone) {
+    if (isActivityExpired(result.endTime, result.timezone)) {
+      console.log("Activity has expired:", result.activityId, "ended at:", result.endTime);
+      return null; // Return null for expired activities
+    }
   }
 
   // Decrypt the hoopxWalletAddress if it exists and is encrypted
@@ -52,15 +104,22 @@ export const getPurchaseDetails = async (): Promise<PurchaseDetailsVO> => {
 /**
  * POST /api/purchase/session
  * Retrieves the purchase session information for a connected wallet
+ * @param activityId - Optional activity ID to filter session data
  */
 export const getPurchaseSession = async (
   publicKey: string,
-  activityId: string
+  activityId?: string
 ): Promise<FetchSessionVO> => {
-  const { data } = await http.post("/api/purchase/session", {
+  const payload: { publicKey: string; activityId?: string } = {
     publicKey,
-    activityId,
-  });
+  };
+
+  // Only include activityId if provided
+  if (activityId) {
+    payload.activityId = activityId;
+  }
+
+  const { data } = await http.post("/api/purchase/session", payload);
 
   // Handle potential wrapper structure like { code: 200, data: {...} }
   if (data && typeof data === "object" && "data" in data) {
