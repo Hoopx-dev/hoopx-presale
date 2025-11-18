@@ -4,7 +4,7 @@ import Header from "@/components/header";
 import InfoListCard from "@/components/ui/info-list-card";
 import PurchaseCard from "@/components/ui/purchase-card";
 import TransactionCard from "@/components/ui/transaction-card";
-import VestingCard from "@/components/vesting-card";
+import JupiterLockCard from "@/components/jupiter-lock-card";
 import { usePurchaseDetails, usePurchaseSession } from "@/lib/purchase/hooks";
 import type { OrderVO } from "@/lib/purchase/types";
 import { useTransaction } from "@/lib/solana/hooks";
@@ -131,18 +131,6 @@ export default function PortfolioPage() {
   useEffect(() => {
     sessionStorage.setItem("hoopx-current-page", "portfolio");
   }, []);
-
-  // Handle claim button click
-  const handleClaim = (order: OrderVO) => {
-    // Check if order has Jupiter Lock escrow address
-    if (order.jupiterLockAddress) {
-      // Open specific lock page with escrow address
-      window.open(`https://lock.jup.ag/escrow/${order.jupiterLockAddress}`, '_blank');
-    } else {
-      // Fallback: Open Jupiter Lock homepage where users can connect wallet to find their locks
-      window.open('https://lock.jup.ag', '_blank');
-    }
-  };
 
   // Redirect if not connected or no purchase (Rules #1, #2)
   useEffect(() => {
@@ -323,10 +311,9 @@ export default function PortfolioPage() {
                           className='mb-4'
                         />
 
-                        {/* Vesting Progress Card */}
-                        <VestingCard
-                          order={order}
-                          onClaim={() => handleClaim(order)}
+                        {/* Jupiter Lock Card - Hardcoded for testing */}
+                        <JupiterLockCard
+                          escrowAddress={order.jupiterLockAddress || 'HR5cguYX8cjvXhjEvsNzaZ788KafNR7NFvjQrWXFaZWm'}
                         />
                       </>
                     )}

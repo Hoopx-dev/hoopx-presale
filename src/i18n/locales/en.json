@@ -219,7 +219,9 @@
     "nextUnlock": "Next Unlock",
     "claimAll": "Claim All",
     "claimAvailable": "Claim {amount} HOOPX",
-    "cliffNotPassed": "Tokens will unlock on {date}"
+    "cliffNotPassed": "Tokens will unlock on {date}",
+    "claimed": "Claimed",
+    "claimable": "Claimable"
   },
   "terms": {
     "title": "Terms and Conditions",

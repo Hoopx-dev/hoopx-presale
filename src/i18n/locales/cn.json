@@ -219,7 +219,9 @@
     "nextUnlock": "下次解锁",
     "claimAll": "全部领取",
     "claimAvailable": "领取 {amount} HOOPX",
-    "cliffNotPassed": "代币将于 {date} 解锁"
+    "cliffNotPassed": "代币将于 {date} 解锁",
+    "claimed": "已领取",
+    "claimable": "可领取"
   },
   "terms": {
     "title": "条款与条件",
