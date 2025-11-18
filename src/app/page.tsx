@@ -69,13 +69,13 @@ function HomeContent() {
     sessionStorage.setItem('hoopx-current-page', 'home');
   }, []);
 
-  // Check for unfinished order and show modal
+  // Check for unfinished order and show modal (only if there's an active activity)
   useEffect(() => {
-    if (connected && !sessionLoading && purchaseSession?.preOrderVO) {
-      // Has unfinished order - show modal
+    if (connected && !sessionLoading && !isLoading && purchaseSession?.preOrderVO && purchaseDetails) {
+      // Has unfinished order AND active activity - show modal
       setShowUnfinishedOrderModal(true);
     }
-  }, [connected, sessionLoading, purchaseSession]);
+  }, [connected, sessionLoading, isLoading, purchaseSession, purchaseDetails]);
 
   // Redirect to portfolio if connected with successful purchase (Rule #3)
   useEffect(() => {
@@ -99,9 +99,9 @@ function HomeContent() {
   // Handle buy button click
   const handleBuyClick = () => {
     if (connected) {
-      // Check for unfinished pre-order first
-      if (purchaseSession?.preOrderVO) {
-        // Has unfinished order - show modal instead of redirecting
+      // Check for unfinished pre-order first (only if there's an active activity)
+      if (purchaseSession?.preOrderVO && purchaseDetails) {
+        // Has unfinished order AND active activity - show modal instead of redirecting
         setShowUnfinishedOrderModal(true);
         return;
       }

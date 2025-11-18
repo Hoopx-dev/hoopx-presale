@@ -237,13 +237,13 @@ export default function PurchasePage() {
     setShowTermsModal(false);
   };
 
-  // Check for unfinished order and show modal (only if not currently processing a purchase)
+  // Check for unfinished order and show modal (only if not currently processing a purchase AND there's an active activity)
   useEffect(() => {
-    if (connected && !sessionLoading && purchaseSession?.preOrderVO && !isProcessingPurchase) {
-      // Has unfinished order - show modal
+    if (connected && !sessionLoading && !detailsLoading && purchaseSession?.preOrderVO && !isProcessingPurchase && purchaseDetails) {
+      // Has unfinished order AND active activity - show modal
       setShowUnfinishedOrderModal(true);
     }
-  }, [connected, sessionLoading, purchaseSession, isProcessingPurchase]);
+  }, [connected, sessionLoading, detailsLoading, purchaseSession, isProcessingPurchase, purchaseDetails]);
 
   // Show terms modal only when navigating from a different page (not on refresh or language change)
   useEffect(() => {
@@ -298,9 +298,9 @@ export default function PurchasePage() {
   const handleBuyClick = () => {
     if (!selectedTier || alreadyPurchased) return;
 
-    // Check for existing pre-order first
-    if (purchaseSession?.preOrderVO) {
-      // Has unfinished order - show modal instead of creating new purchase
+    // Check for existing pre-order first (only if there's an active activity)
+    if (purchaseSession?.preOrderVO && purchaseDetails) {
+      // Has unfinished order AND active activity - show modal instead of creating new purchase
       setShowUnfinishedOrderModal(true);
       return;
     }
