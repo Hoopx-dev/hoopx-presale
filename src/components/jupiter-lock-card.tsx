@@ -93,144 +93,36 @@ export default function JupiterLockCard({ escrowAddress }: JupiterLockCardProps)
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className='bg-white/5 rounded-xl p-5 border border-white/10'>
-        <div className='text-white/50 text-center py-4'>Loading lock data...</div>
-      </div>
-    );
-  }
-
-  if (!lockData) {
-    return (
-      <div className='bg-white/5 rounded-xl p-5 border border-white/10'>
-        <div className='text-white/50 text-center py-4'>Lock data not found</div>
-      </div>
-    );
-  }
-
-  // Determine status
-  let statusLabel = t('locked');
-  let statusColor = 'bg-yellow-500';
-  if (lockData.isFullyVested && lockData.claimedAmount >= lockData.totalAmount) {
-    statusLabel = t('fullyVested');
-    statusColor = 'bg-green-500';
-  } else if (lockData.isCliffPassed) {
-    statusLabel = t('vesting');
-    statusColor = 'bg-yellow-500';
-  }
-
+  /**
+   * Temporary: Show Jupiter Lock link until proper SDK integration
+   *
+   * TODO: Implement proper Jupiter Lock integration
+   * - Get IDL from Jupiter Lock program (LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn)
+   * - Use Anchor or Codama to deserialize account data
+   * - Display real-time lock info, claimable amounts
+   * - Add direct claim functionality
+   *
+   * For now, redirect to Jupiter Lock website
+   */
   return (
-    <>
-      <div className='bg-white/5 rounded-xl p-5 border border-white/10'>
-        {/* Header */}
-        <div className='flex items-center justify-between mb-4'>
-          <h3 className='text-white font-medium'>{t('lockedTokens')}</h3>
-          <div className='flex items-center gap-2'>
-            <div className={`w-2 h-2 rounded-full ${statusColor}`}></div>
-            <span className={`text-sm ${statusColor.replace('bg-', 'text-')}`}>
-              {statusLabel}
-            </span>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        <div className='mb-4'>
-          <div className='flex justify-between text-sm mb-2'>
-            <span className='text-white/70'>{t('vestingProgress')}</span>
-            <span className='text-white font-medium'>
-              {lockData.progressPercentage.toFixed(1)}%
-            </span>
-          </div>
-          <div className='w-full h-2 bg-white/10 rounded-full overflow-hidden'>
-            <div
-              className='h-full bg-gradient-to-r from-yellow-500 to-yellow-400 transition-all duration-500'
-              style={{ width: `${lockData.progressPercentage}%` }}
-            />
-          </div>
-        </div>
-
-        {/* Token Amounts */}
-        <div className='space-y-3 mb-4'>
-          <div className='flex justify-between'>
-            <span className='text-white/70 text-sm'>{t('totalLocked')}</span>
-            <span className='text-white font-medium'>
-              {formatTokenAmount(lockData.totalAmount)} HOOPX
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-white/70 text-sm'>{t('claimed')}</span>
-            <span className='text-white/50 font-medium'>
-              {formatTokenAmount(lockData.claimedAmount)} HOOPX
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-white/70 text-sm'>{t('claimable')}</span>
-            <span className='text-success font-medium'>
-              {formatTokenAmount(lockData.claimableAmount)} HOOPX
-            </span>
-          </div>
-          <div className='flex justify-between'>
-            <span className='text-white/70 text-sm'>{t('stillLocked')}</span>
-            <span className='text-white/50 font-medium'>
-              {formatTokenAmount(lockData.remainingAmount - lockData.claimableAmount)} HOOPX
-            </span>
-          </div>
-        </div>
-
-        {/* Lock Timeline */}
-        <div className='bg-white/5 rounded-lg p-3 mb-4 space-y-2'>
-          <div className='flex justify-between text-sm'>
-            <span className='text-white/70'>Cliff End</span>
-            <span className='text-white'>{formatDate(lockData.cliffEndDate)}</span>
-          </div>
-          <div className='flex justify-between text-sm'>
-            <span className='text-white/70'>Vesting End</span>
-            <span className='text-white'>{formatDate(lockData.vestingEndDate)}</span>
-          </div>
-        </div>
-
-        {/* Claim Button */}
-        {lockData.claimableAmount > 0 ? (
-          <Button
-            variant='primary'
-            size='large'
-            onClick={handleClaim}
-            disabled={isClaiming || !lockData.isCliffPassed}
-            className='w-full'
-          >
-            {isClaiming
-              ? t('claiming')
-              : `${t('claimAvailable', { amount: formatTokenAmount(lockData.claimableAmount) })}`}
-          </Button>
-        ) : (
-          <div className='text-center text-white/50 text-sm'>
-            {!lockData.isCliffPassed
-              ? t('cliffNotPassed', { date: formatDate(lockData.cliffEndDate) })
-              : t('noTokensAvailable')}
-          </div>
-        )}
-
-        {/* View on Jupiter Link */}
-        <div className='mt-3 text-center'>
-          <a
-            href={`https://lock.jup.ag/escrow/${escrowAddress}`}
-            target='_blank'
-            rel='noopener noreferrer'
-            className='text-yellow-500 text-sm hover:underline cursor-pointer'
-          >
-            {t('viewOnJupiter')} ↗
-          </a>
-        </div>
+    <div className='bg-white/5 rounded-xl p-5 border border-white/10'>
+      <div className='text-center space-y-4'>
+        <div className='text-white font-medium'>{t('lockedTokens')}</div>
+        <p className='text-white/70 text-sm'>
+          View your locked tokens and claim when available on Jupiter Lock
+        </p>
+        <Button
+          variant='primary'
+          size='large'
+          onClick={() => window.open(`https://lock.jup.ag/escrow/${escrowAddress}`, '_blank')}
+          className='w-full'
+        >
+          {t('viewOnJupiter')}
+        </Button>
+        <p className='text-white/50 text-xs'>
+          Escrow: {escrowAddress.slice(0, 4)}...{escrowAddress.slice(-4)}
+        </p>
       </div>
-
-      {/* Toast Notification */}
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
-    </>
+    </div>
   );
 }

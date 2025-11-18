@@ -1,8 +1,30 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import type { ParsedLockInfo } from './types';
 
-// Jupiter Lock Program ID
-export const JUPITER_LOCK_PROGRAM_ID = new PublicKey('CChTq6PthWU82YZkbveA3WDf7s97BWhBK4Vx9bmsT743');
+/**
+ * TODO: Proper Jupiter Lock Integration
+ *
+ * The current manual deserialization is not working correctly.
+ * To properly integrate Jupiter Lock, we need to:
+ *
+ * 1. Get the IDL from Jupiter Lock program
+ *    - Program ID: LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn
+ *    - Clone https://github.com/jup-ag/jup-lock
+ *    - Run `anchor build` to generate ./target/idl/locker.json
+ *
+ * 2. Generate TypeScript client using Codama
+ *    - Use Codama to generate client code from the IDL
+ *    - Or use @coral-xyz/anchor to deserialize accounts
+ *
+ * 3. Replace manual deserialization with proper Anchor deserialization
+ *    - Use the generated types and methods
+ *    - This will give us correct field parsing
+ *
+ * Reference: https://github.com/jup-ag/jup-lock-starter
+ */
+
+// Jupiter Lock Program ID (CORRECT ONE)
+export const JUPITER_LOCK_PROGRAM_ID = new PublicKey('LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn');
 
 /**
  * Fetch and parse Jupiter Lock escrow account data
