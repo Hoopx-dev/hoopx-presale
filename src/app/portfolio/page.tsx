@@ -1,14 +1,15 @@
 "use client";
 
 import Header from "@/components/header";
-import InfoListCard from "@/components/ui/info-list-card";
+import JupiterLockCard from "@/components/jupiter-lock-card";
 import PurchaseCard from "@/components/ui/purchase-card";
 import TransactionCard from "@/components/ui/transaction-card";
-import JupiterLockCard from "@/components/jupiter-lock-card";
 import { usePurchaseDetails, usePurchaseSession } from "@/lib/purchase/hooks";
 import type { OrderVO } from "@/lib/purchase/types";
 import { useTransaction } from "@/lib/solana/hooks";
 import { getExplorerUrl } from "@/lib/solana/transactions";
+import { useAllJupiterLocks } from "@/lib/jupiter-lock/hooks";
+import { HOOPX_TOKEN_MINT } from "@/lib/jupiter-lock/fetcher";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -95,13 +96,16 @@ export default function PortfolioPage() {
     purchaseDetails?.activityId
   );
 
+  // Fetch all Jupiter Lock escrows for this wallet from on-chain (filtered by HOOPX token)
+  const { data: onChainLocks } = useAllJupiterLocks(
+    publicKey?.toBase58(),
+    HOOPX_TOKEN_MINT || undefined // Only filter if HOOPX_TOKEN_MINT is configured
+  );
+
   // Tab state: 'purchase' or 'transactions'
   const [activeTab, setActiveTab] = useState<"purchase" | "transactions">(
     "purchase"
   );
-
-  // Collapsible state: track which order's details are expanded (by index)
-  const [expandedOrderIndex, setExpandedOrderIndex] = useState<number>(0);
 
   // Mounted state to prevent redirect during initial wallet reconnection
   const [mounted, setMounted] = useState(false);
@@ -244,20 +248,13 @@ export default function PortfolioPage() {
           {/* Tab Content */}
           {activeTab === "purchase" && (
             <div className='space-y-4'>
-              {/* Purchase Cards - one per successful order */}
-              {successfulOrders.map((order, index) => {
-                const orderHoopxAmount = order.amount / order.rate;
-                const isExpanded = expandedOrderIndex === index;
+              {/* Purchase Cards - only show if no on-chain locks exist */}
+              {(!onChainLocks || onChainLocks.length === 0) &&
+                successfulOrders.map((order, index) => {
+                  const orderHoopxAmount = order.amount / order.rate;
 
-                return (
-                  <div key={order.trxId || index}>
-                    {/* Purchase Card - clickable to toggle details */}
-                    <div
-                      onClick={() =>
-                        setExpandedOrderIndex(isExpanded ? -1 : index)
-                      }
-                      className='cursor-pointer'
-                    >
+                  return (
+                    <div key={order.trxId || index}>
                       <PurchaseCard
                         logo='/images/token-badge.png'
                         activityName={order.activityName}
@@ -272,54 +269,22 @@ export default function PortfolioPage() {
                         }
                         amount={order.amount}
                         tokenAmount={orderHoopxAmount}
-                        className='mb-2'
                       />
                     </div>
+                  );
+                })}
 
-                    {/* Collapsible Purchase Details */}
-                    {isExpanded && (
-                      <>
-                        <InfoListCard
-                          items={[
-                            {
-                              label: t("purchaseTime"),
-                              value: order.subscriptionTime || "-",
-                            },
-                            {
-                              label: t("purchaseStatus"),
-                              value: t("notReleased"),
-                            },
-                            {
-                              label: t("vestingPeriod"),
-                              value: `${order.vesting || "12"} ${t("months")}`,
-                            },
-                            {
-                              label: t("cliffPeriod"),
-                              value: `${order.cliff || "3"} ${t("months")}`,
-                            },
-                            {
-                              label: t("releaseFrequency"),
-                              value: (() => {
-                                const freq = Number(order.vestingFrequency) ?? 1;
-                                if (freq === 1) return t("perMonth");
-                                if (freq === 2) return t("perYear");
-                                // Fallback for unexpected values
-                                return t("perMonth");
-                              })(),
-                            },
-                          ]}
-                          className='mb-4'
-                        />
-
-                        {/* Jupiter Lock Card - Hardcoded for testing */}
-                        <JupiterLockCard
-                          escrowAddress={order.jupiterLockAddress || 'HR5cguYX8cjvXhjEvsNzaZ788KafNR7NFvjQrWXFaZWm'}
-                        />
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              {/* Jupiter Lock Cards - fetched from on-chain by wallet address */}
+              {onChainLocks && onChainLocks.length > 0 && (
+                <div className='space-y-4'>
+                  {onChainLocks.map((lock) => (
+                    <JupiterLockCard
+                      key={lock.escrowAddress}
+                      escrowAddress={lock.escrowAddress}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Buy Button for Current Activity (if not purchased) */}
               {purchaseDetails && !hasPurchasedCurrentActivity && (

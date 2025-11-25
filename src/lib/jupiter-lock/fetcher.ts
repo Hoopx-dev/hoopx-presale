@@ -1,33 +1,128 @@
 import { Connection, PublicKey } from '@solana/web3.js';
+import { LockClient } from '@meteora-ag/met-lock-sdk';
+import { getMint } from '@solana/spl-token';
 import type { ParsedLockInfo } from './types';
 
 /**
- * TODO: Proper Jupiter Lock Integration
+ * Jupiter Lock / Meteora Lock Integration
  *
- * The current manual deserialization is not working correctly.
- * To properly integrate Jupiter Lock, we need to:
+ * Using @meteora-ag/met-lock-sdk to interact with the Lock Program
+ * Program ID: LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn
  *
- * 1. Get the IDL from Jupiter Lock program
- *    - Program ID: LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn
- *    - Clone https://github.com/jup-ag/jup-lock
- *    - Run `anchor build` to generate ./target/idl/locker.json
- *
- * 2. Generate TypeScript client using Codama
- *    - Use Codama to generate client code from the IDL
- *    - Or use @coral-xyz/anchor to deserialize accounts
- *
- * 3. Replace manual deserialization with proper Anchor deserialization
- *    - Use the generated types and methods
- *    - This will give us correct field parsing
- *
- * Reference: https://github.com/jup-ag/jup-lock-starter
+ * SDK Escrow Structure (from IDL):
+ * - recipient: PublicKey (offset 8, after 8-byte discriminator)
+ * - tokenMint: PublicKey
+ * - creator: PublicKey
+ * - base: PublicKey
+ * - escrowBump: u8
+ * - cliffTime: u64 (unix timestamp when cliff ends)
+ * - frequency: u64 (seconds between releases)
+ * - cliffUnlockAmount: u64 (amount released at cliff)
+ * - amountPerPeriod: u64 (amount per vesting period)
+ * - numberOfPeriod: u64 (total vesting periods)
+ * - totalClaimedAmount: u64 (already claimed)
+ * - vestingStartTime: u64 (when vesting started)
+ * - cancelledAt: u64 (0 if not cancelled)
  */
 
-// Jupiter Lock Program ID (CORRECT ONE)
+// Jupiter/Meteora Lock Program ID
 export const JUPITER_LOCK_PROGRAM_ID = new PublicKey('LocpQgucEQHbqNABEYvBvwoxCPsSbG91A1QaQhQQqjn');
 
+// HOOPX Token Mint Address
+export const HOOPX_TOKEN_MINT = process.env.NEXT_PUBLIC_HOOPX_TOKEN_MINT || '9GhjesUhxmVo9x4UHpdS6NVi4TGzcx8BtGckUqFrjupx';
+
 /**
- * Fetch and parse Jupiter Lock escrow account data
+ * Find all Jupiter Lock escrows for a given recipient wallet address
+ * Uses getProgramAccounts with memcmp filter on recipient field
+ *
+ * Note: Meteora Lock uses zero_copy accounts which may have different layout.
+ * The VestingEscrow account structure (from IDL inspection):
+ * - Anchor discriminator: 8 bytes (offset 0)
+ * - recipient: 32 bytes (offset 8)
+ * - tokenMint: 32 bytes (offset 40)
+ *
+ * @param connection - Solana connection
+ * @param recipientWallet - The recipient's wallet public key
+ * @returns Array of escrow addresses
+ */
+export async function findEscrowsByRecipient(
+  connection: Connection,
+  recipientWallet: PublicKey
+): Promise<string[]> {
+  try {
+    const accounts = await connection.getProgramAccounts(JUPITER_LOCK_PROGRAM_ID, {
+      filters: [
+        {
+          memcmp: {
+            offset: 8, // recipient is at offset 8 (after 8-byte discriminator)
+            bytes: recipientWallet.toBase58(),
+          },
+        },
+      ],
+    });
+
+    return accounts.map((account) => account.pubkey.toBase58());
+  } catch (error) {
+    console.error('Error finding escrows by recipient:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch all Jupiter Lock escrows for a wallet and parse them
+ * @param connection - Solana connection
+ * @param recipientWallet - The recipient's wallet public key
+ * @param filterTokenMint - Optional token mint to filter by (e.g., HOOPX_TOKEN_MINT)
+ * @returns Array of parsed lock information
+ */
+export async function fetchAllJupiterLocks(
+  connection: Connection,
+  recipientWallet: string,
+  filterTokenMint?: string
+): Promise<ParsedLockInfo[]> {
+  try {
+    const walletPubkey = new PublicKey(recipientWallet);
+    const escrowAddresses = await findEscrowsByRecipient(connection, walletPubkey);
+
+    if (escrowAddresses.length === 0) {
+      return [];
+    }
+
+    // Fetch each escrow's details
+    const locks: ParsedLockInfo[] = [];
+    for (const escrowAddress of escrowAddresses) {
+      const lockInfo = await fetchJupiterLock(connection, escrowAddress);
+      if (lockInfo) {
+        // Filter by token mint if specified
+        if (filterTokenMint && lockInfo.tokenMint !== filterTokenMint) {
+          continue;
+        }
+        locks.push(lockInfo);
+      }
+    }
+
+    return locks;
+  } catch (error) {
+    console.error('Error fetching all Jupiter locks:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch token decimals from mint
+ */
+async function getTokenDecimals(connection: Connection, mintAddress: PublicKey): Promise<number> {
+  try {
+    const mintInfo = await getMint(connection, mintAddress);
+    return mintInfo.decimals;
+  } catch {
+    // Default to 6 decimals (common for USDT, USDC, etc.)
+    return 6;
+  }
+}
+
+/**
+ * Fetch and parse Jupiter Lock escrow account data using Meteora SDK
  * @param connection - Solana connection
  * @param escrowAddress - The escrow account public key
  * @returns Parsed lock information
@@ -39,91 +134,84 @@ export async function fetchJupiterLock(
   try {
     const escrowPubkey = new PublicKey(escrowAddress);
 
-    // Fetch account info
-    const accountInfo = await connection.getAccountInfo(escrowPubkey);
+    // Initialize Meteora Lock client
+    const client = new LockClient(connection, 'confirmed');
 
-    if (!accountInfo) {
-      console.error('Jupiter Lock escrow account not found:', escrowAddress);
+    // Fetch escrow data using SDK
+    const escrow = await client.getEscrow(escrowPubkey);
+
+    if (!escrow) {
       return null;
     }
 
-    // Parse the account data
-    const data = accountInfo.data;
+    // The SDK returns the escrow data directly with correct field names
+    // Field names from Meteora SDK IDL (camelCase in TypeScript)
+    const {
+      recipient,
+      tokenMint,
+      cliffTime,
+      frequency,
+      cliffUnlockAmount,
+      amountPerPeriod,
+      numberOfPeriod,
+      totalClaimedAmount,
+      vestingStartTime,
+    } = escrow;
 
-    // Jupiter Lock escrow account layout (approximate - may need adjustment)
-    // This is a simplified version - you may need to adjust based on actual program layout
-    const layout = {
-      recipient: data.slice(8, 40),           // 32 bytes for recipient pubkey
-      mint: data.slice(40, 72),               // 32 bytes for mint pubkey
-      amount: data.readBigUInt64LE(72),       // 8 bytes for total amount
-      startTs: data.readBigUInt64LE(80),      // 8 bytes for start timestamp
-      cliffUnits: data.readBigUInt64LE(88),   // 8 bytes for cliff units
-      cliffUnitsType: data.readUInt8(96),     // 1 byte for cliff type (0=seconds, 1=months)
-      amountPerPeriod: data.readBigUInt64LE(97), // 8 bytes for amount per period
-      numOfUnits: data.readBigUInt64LE(105),  // 8 bytes for number of units
-      unitsType: data.readUInt8(113),         // 1 byte for units type
-      claimedAmount: data.readBigUInt64LE(114), // 8 bytes for claimed amount
-    };
+    // Get token decimals from mint
+    const decimals = await getTokenDecimals(connection, tokenMint);
+    const divisor = Math.pow(10, decimals);
 
-    // Convert to human-readable format
-    const totalAmount = Number(layout.amount) / 1e6; // Assuming 6 decimals for HOOPX
-    const claimedAmount = Number(layout.claimedAmount) / 1e6;
-    const startTs = Number(layout.startTs);
-    const cliffUnits = Number(layout.cliffUnits);
-    const numOfUnits = Number(layout.numOfUnits);
+    // Calculate total amount: cliffUnlockAmount + (amountPerPeriod × numberOfPeriod)
+    const cliffAmount = Number(cliffUnlockAmount.toString()) / divisor;
+    const periodAmount = Number(amountPerPeriod.toString()) / divisor;
+    const numPeriods = Number(numberOfPeriod.toString());
+    const totalAmount = cliffAmount + (periodAmount * numPeriods);
 
-    // Calculate dates
-    const startDate = new Date(startTs * 1000);
+    // Convert claimed amount
+    const claimedAmount = Number(totalClaimedAmount.toString()) / divisor;
 
-    // Calculate cliff end date
-    let cliffEndDate: Date;
-    if (layout.cliffUnitsType === 1) {
-      // Months
-      cliffEndDate = new Date(startDate);
-      cliffEndDate.setMonth(cliffEndDate.getMonth() + cliffUnits);
-    } else {
-      // Seconds
-      cliffEndDate = new Date(startTs * 1000 + cliffUnits * 1000);
-    }
+    // Parse timestamps (SDK returns BN, convert to number for Date)
+    const vestingStartTimestamp = Number(vestingStartTime.toString());
+    const cliffTimestamp = Number(cliffTime.toString());
+    const frequencySeconds = Number(frequency.toString());
+
+    const startDate = new Date(vestingStartTimestamp * 1000);
+    const cliffEndDate = new Date(cliffTimestamp * 1000);
 
     // Calculate vesting end date
-    let vestingEndDate: Date;
-    if (layout.unitsType === 1) {
-      // Months
-      vestingEndDate = new Date(cliffEndDate);
-      vestingEndDate.setMonth(vestingEndDate.getMonth() + numOfUnits);
-    } else {
-      // Seconds
-      vestingEndDate = new Date(cliffEndDate.getTime() + numOfUnits * 1000);
-    }
+    // Vesting ends after all periods complete from cliff time
+    const vestingEndTimestamp = cliffTimestamp + (numPeriods * frequencySeconds);
+    const vestingEndDate = new Date(vestingEndTimestamp * 1000);
 
-    // Calculate claimable amount
-    const now = new Date();
-    const isCliffPassed = now >= cliffEndDate;
-    const isFullyVested = now >= vestingEndDate;
+    // Check current status
+    const now = Date.now();
+    const nowSeconds = Math.floor(now / 1000);
+    const isCliffPassed = nowSeconds >= cliffTimestamp;
+    const isFullyVested = nowSeconds >= vestingEndTimestamp;
 
-    let claimableAmount = 0;
+    // Calculate claimable amount based on vesting schedule
+    let vestedAmount = 0;
     if (isFullyVested) {
-      claimableAmount = totalAmount - claimedAmount;
+      // All tokens are vested
+      vestedAmount = totalAmount;
     } else if (isCliffPassed) {
-      // Calculate based on time elapsed since cliff
-      const totalVestingTime = vestingEndDate.getTime() - cliffEndDate.getTime();
-      const elapsedTime = now.getTime() - cliffEndDate.getTime();
-      const vestingProgress = Math.min(elapsedTime / totalVestingTime, 1);
-      const totalVested = totalAmount * vestingProgress;
-      claimableAmount = Math.max(totalVested - claimedAmount, 0);
+      // Cliff amount + periods elapsed since cliff
+      const elapsedSinceCliff = nowSeconds - cliffTimestamp;
+      const periodsElapsed = Math.floor(elapsedSinceCliff / frequencySeconds);
+      vestedAmount = cliffAmount + (periodsElapsed * periodAmount);
+      vestedAmount = Math.min(vestedAmount, totalAmount);
     }
+    // Before cliff: vestedAmount = 0
 
+    const claimableAmount = Math.max(vestedAmount - claimedAmount, 0);
     const remainingAmount = totalAmount - claimedAmount;
-    const progressPercentage = (claimedAmount / totalAmount) * 100;
-
-    const recipientPubkey = new PublicKey(layout.recipient);
-    const mintPubkey = new PublicKey(layout.mint);
+    const progressPercentage = totalAmount > 0 ? (claimedAmount / totalAmount) * 100 : 0;
 
     return {
       escrowAddress,
-      recipientAddress: recipientPubkey.toBase58(),
-      tokenMint: mintPubkey.toBase58(),
+      recipientAddress: recipient.toBase58(),
+      tokenMint: tokenMint.toBase58(),
       totalAmount,
       claimedAmount,
       claimableAmount,
@@ -134,6 +222,12 @@ export async function fetchJupiterLock(
       isCliffPassed,
       isFullyVested,
       progressPercentage,
+      // Additional raw data for claim function
+      decimals,
+      frequencySeconds,
+      cliffAmount,
+      periodAmount,
+      numPeriods,
     };
   } catch (error) {
     console.error('Error fetching Jupiter Lock:', error);

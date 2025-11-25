@@ -1,14 +1,20 @@
-import {
-  Connection,
-  PublicKey,
-  Transaction,
-  TransactionInstruction,
-} from '@solana/web3.js';
-import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
-import { JUPITER_LOCK_PROGRAM_ID } from './fetcher';
+import { Connection, PublicKey, Transaction } from '@solana/web3.js';
+import { LockClient } from '@meteora-ag/met-lock-sdk';
+import BN from 'bn.js';
 
 /**
- * Claim/withdraw tokens from Jupiter Lock
+ * Claim/withdraw tokens from Jupiter Lock using Meteora SDK
+ *
+ * Uses the claimV2 method from @meteora-ag/met-lock-sdk
+ * SDK Field Names (from IDL):
+ * - recipient: PublicKey
+ * - cliffTime: BN (unix timestamp)
+ * - frequency: BN (seconds)
+ * - cliffUnlockAmount: BN
+ * - amountPerPeriod: BN
+ * - numberOfPeriod: BN
+ * - totalClaimedAmount: BN
+ *
  * @param connection - Solana connection
  * @param escrowAddress - Jupiter Lock escrow account address
  * @param recipientWallet - User's wallet public key
@@ -24,60 +30,83 @@ export async function claimJupiterLock(
   try {
     const escrowPubkey = new PublicKey(escrowAddress);
 
-    // Fetch escrow account to get mint and other details
-    const escrowInfo = await connection.getAccountInfo(escrowPubkey);
-    if (!escrowInfo) {
+    // Initialize Meteora Lock client
+    const client = new LockClient(connection, 'confirmed');
+
+    // Fetch escrow data to verify it exists and get details
+    const escrow = await client.getEscrow(escrowPubkey);
+    if (!escrow) {
       return { success: false, error: 'Escrow account not found' };
     }
 
-    // Parse mint from escrow data (simplified - adjust based on actual layout)
-    const mintData = escrowInfo.data.slice(40, 72);
-    const mint = new PublicKey(mintData);
+    // Extract escrow details using correct SDK field names
+    const {
+      recipient,
+      cliffTime,
+      frequency,
+      cliffUnlockAmount,
+      amountPerPeriod,
+      numberOfPeriod,
+      totalClaimedAmount,
+    } = escrow;
 
-    // Get or create associated token account for recipient
-    const recipientTokenAccount = await getAssociatedTokenAddress(
-      mint,
-      recipientWallet
+    // Calculate total max amount: cliffUnlockAmount + (amountPerPeriod * numberOfPeriod)
+    const maxAmount = cliffUnlockAmount.add(
+      amountPerPeriod.mul(numberOfPeriod)
     );
 
-    // Get escrow token account (PDA derived from escrow)
-    const [escrowTokenAccount] = PublicKey.findProgramAddressSync(
-      [Buffer.from('escrow'), escrowPubkey.toBuffer()],
-      JUPITER_LOCK_PROGRAM_ID
-    );
+    // Calculate claimable amount based on vesting schedule
+    const now = Math.floor(Date.now() / 1000);
+    const cliffTimestamp = cliffTime.toNumber();
+    const frequencySeconds = frequency.toNumber();
 
-    // Build claim instruction
-    // Note: This is a simplified version - you may need to adjust based on Jupiter Lock's actual instruction layout
-    const claimInstruction = new TransactionInstruction({
-      keys: [
-        { pubkey: escrowPubkey, isSigner: false, isWritable: true },
-        { pubkey: escrowTokenAccount, isSigner: false, isWritable: true },
-        { pubkey: recipientTokenAccount, isSigner: false, isWritable: true },
-        { pubkey: recipientWallet, isSigner: true, isWritable: false },
-        { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
-      ],
-      programId: JUPITER_LOCK_PROGRAM_ID,
-      data: Buffer.from([
-        3, // Instruction index for "withdraw" (may need adjustment)
-      ]),
+    // Calculate how much can be claimed
+    let vestedAmount = new BN(0);
+    if (now >= cliffTimestamp) {
+      // After cliff: cliff amount + periods elapsed
+      const elapsedSinceCliff = now - cliffTimestamp;
+      const periodsElapsed = Math.floor(elapsedSinceCliff / frequencySeconds);
+
+      // Vested = cliffUnlockAmount + (periodsElapsed * amountPerPeriod)
+      vestedAmount = cliffUnlockAmount.add(
+        amountPerPeriod.muln(periodsElapsed)
+      );
+
+      // Cap at max amount
+      if (vestedAmount.gt(maxAmount)) {
+        vestedAmount = maxAmount;
+      }
+    }
+
+    // Claimable = vested - already claimed
+    const claimableAmount = vestedAmount.sub(totalClaimedAmount);
+
+    if (claimableAmount.lte(new BN(0))) {
+      return { success: false, error: 'No tokens available to claim yet' };
+    }
+
+    // Get claim transaction using SDK's claimV2 method
+    const claimTx = await client.claimV2({
+      escrow: escrowPubkey,
+      recipient: recipient,
+      maxAmount: claimableAmount,
+      payer: recipientWallet,
     });
 
-    // Create and send transaction
-    const transaction = new Transaction().add(claimInstruction);
-    transaction.feePayer = recipientWallet;
-
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-    transaction.recentBlockhash = blockhash;
+    // Set fee payer and get blockhash
+    claimTx.feePayer = recipientWallet;
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash();
+    claimTx.recentBlockhash = blockhash;
 
     // Sign transaction with user's wallet
-    const signedTransaction = await signTransaction(transaction);
+    const signedTransaction = await signTransaction(claimTx);
 
-    // Send transaction
+    // Send and confirm transaction
     const signature = await connection.sendRawTransaction(
       signedTransaction.serialize()
     );
 
-    // Confirm transaction
     await connection.confirmTransaction({
       signature,
       blockhash,
@@ -87,7 +116,17 @@ export async function claimJupiterLock(
     return { success: true, signature };
   } catch (error: unknown) {
     console.error('Error claiming Jupiter Lock:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+
+    // Handle user rejection gracefully
+    if (
+      error instanceof Error &&
+      error.message.includes('User rejected')
+    ) {
+      return { success: false, error: 'Transaction cancelled by user' };
+    }
+
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
     return { success: false, error: errorMessage };
   }
 }
