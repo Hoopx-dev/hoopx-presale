@@ -257,6 +257,11 @@ function parseTokenTransfer(tx: ParsedTransactionWithMeta): {
               name: "USD Coin",
               logo: "/images/usdc.png",
             },
+            "9GhjesUhxmVo9x4UHpdS6NVi4TGzcx8BtGckUqFrjupx": {
+              symbol: "HOOPX",
+              name: "HOOPX Token",
+              logo: "/images/token-badge.png",
+            },
           };
 
           // Try to get token metadata
